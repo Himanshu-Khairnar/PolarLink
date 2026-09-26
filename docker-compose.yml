@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: polar
+      POSTGRES_PASSWORD: polar
+      POSTGRES_DB: polarlink
+    ports:
+      - "5432:5432"
+    volumes:
+      - polarpg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U polar -d polarlink"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      POLARLINK_DATABASE_URL: postgresql+psycopg://polar:polar@db:5432/polarlink
+      POLARLINK_JWT_SECRET: polar-link-dev-secret-change-me-0123456789abcdef
+      POLARLINK_SEED_ON_STARTUP: "true"
+      POLARLINK_CORS_ORIGINS: '["http://localhost:3000"]'
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: .
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  polarpg:
