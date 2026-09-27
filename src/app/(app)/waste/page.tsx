@@ -4,10 +4,12 @@ import * as React from "react";
 import { Leaf, Recycle, Ship, Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { SectionCard, StatCard, Pill, Bar } from "@/components/shared/kit";
+import { StageFlow } from "@/components/shared/stage-flow";
 import { Donut, HBars } from "@/components/shared/charts";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { relTime, title } from "@/lib/format";
+import { RelativeTime } from "@/components/shared/relative-time";
+import { title } from "@/lib/format";
 import { cn } from "cn";
 import type { WasteEntry } from "@/lib/types";
 
@@ -32,7 +34,7 @@ const CAT_COLOR: Record<WasteEntry["category"], string> = {
 };
 
 export default function WastePage() {
-  const { data, setWasteStage } = useStore();
+  const { data, setWasteStage, stationById } = useStore();
   const total = data.waste.reduce((a, b) => a + b.qtyKg, 0);
   const returned = data.waste.filter((w) => w.stage === "returned").reduce((a, b) => a + b.qtyKg, 0);
   const hazardous = data.waste.filter((w) => w.category === "hazardous").reduce((a, b) => a + b.qtyKg, 0);
@@ -73,7 +75,7 @@ export default function WastePage() {
           <div className="space-y-3">
             {data.waste.map((w) => {
               const idx = STAGES.indexOf(w.stage);
-              const station = data.stations.find((s) => s.id === w.stationId);
+              const station = stationById.get(w.stationId);
               return (
                 <div key={w.id} className="rounded-lg border p-3">
                   <div className="flex items-center justify-between gap-2">
@@ -84,23 +86,11 @@ export default function WastePage() {
                     </div>
                     <span className="text-xs font-semibold tabular-nums">{w.qtyKg.toLocaleString("en-IN")} kg</span>
                   </div>
-                  <div className="mt-2.5 flex flex-wrap items-center gap-1">
-                    {STAGES.map((s, i) => (
-                      <React.Fragment key={s}>
-                        <span
-                          className={cn(
-                            "rounded-full border px-2 py-0.5 text-[10px]",
-                            i <= idx ? "border-transparent bg-foreground text-background" : "text-muted-foreground"
-                          )}
-                        >
-                          {title(s)}
-                        </span>
-                        {i < STAGES.length - 1 ? <span className="text-muted-foreground/40">›</span> : null}
-                      </React.Fragment>
-                    ))}
-                  </div>
+                  <StageFlow steps={STAGES} activeIndex={idx} separator="glyph" className="mt-2.5" />
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">Updated {relTime(w.updatedAt)}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      Updated <RelativeTime value={w.updatedAt} />
+                    </span>
                     {idx < STAGES.length - 1 ? (
                       <Button variant="outline" size="xs" onClick={() => setWasteStage(w.id, STAGES[idx + 1])}>
                         Advance → {title(STAGES[idx + 1])}
@@ -149,12 +139,14 @@ export default function WastePage() {
             {data.waste.map((w) => (
               <TableRow key={w.id}>
                 <TableCell className="capitalize font-medium">{w.category}</TableCell>
-                <TableCell className="text-muted-foreground">{data.stations.find((s) => s.id === w.stationId)?.shortName}</TableCell>
+                <TableCell className="text-muted-foreground">{stationById.get(w.stationId)?.shortName}</TableCell>
                 <TableCell className="text-right tabular-nums">{w.qtyKg.toLocaleString("en-IN")} kg</TableCell>
                 <TableCell>
                   <Pill variant="muted">{title(w.stage)}</Pill>
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground">{relTime(w.updatedAt)}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  <RelativeTime value={w.updatedAt} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

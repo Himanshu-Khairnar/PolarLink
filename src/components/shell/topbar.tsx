@@ -26,18 +26,8 @@ import {
   Snowflake,
   UserCog,
 } from "lucide-react";
-import { relTime } from "@/lib/format";
-import type { Role } from "@/lib/types";
-
-const ROLE_LABELS: Record<Role, string> = {
-  hq_logistics: "HQ Logistics Officer",
-  expedition_leader: "Expedition Leader",
-  station_leader: "Station Leader",
-  inventory_keeper: "Store / Inventory Keeper",
-  medical_officer: "Medical Officer",
-  ship_air_ops: "Ship / Air Ops Coordinator",
-  member: "Expedition Member",
-};
+import { RelativeTime } from "@/components/shared/relative-time";
+import { ROLES, ROLE_ORDER } from "@/lib/roles";
 
 const LINK_OPTIONS: { value: LinkMode; label: string }[] = [
   { value: "online", label: "VSAT" },
@@ -83,7 +73,7 @@ function Clock() {
 export function Topbar({ onMenu }: { onMenu: () => void }) {
   const pathname = usePathname();
   const page = PAGES[pathname] ?? { title: "PolarLink", subtitle: "" };
-  const { data, role, setRole, scope, setScope, link, setLink, glare, setGlare } = useStore();
+  const { data, stationById, role, setRole, scope, setScope, link, setLink, glare, setGlare } = useStore();
 
   const alerts = data.alerts;
   const critical = alerts.filter((a) => a.severity === "critical").length;
@@ -150,7 +140,9 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
                   )}
                 />
                 <span className="text-xs font-medium">{a.title}</span>
-                <span className="ml-auto text-[10px] text-muted-foreground">{relTime(a.ts)}</span>
+                <span className="ml-auto text-[10px] text-muted-foreground">
+                  <RelativeTime value={a.ts} />
+                </span>
               </div>
               <span className="pl-3.5 text-[11px] text-muted-foreground">{a.detail}</span>
             </DropdownMenuItem>
@@ -164,7 +156,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
             <Button variant="outline" size="sm" className="gap-1.5">
               <Radio className="hidden sm:block" />
               <span className="hidden max-w-28 truncate sm:inline">
-                {scope === "all" ? "All stations" : data.stations.find((s) => s.id === scope)?.shortName}
+                {scope === "all" ? "All stations" : stationById.get(scope)?.shortName}
               </span>
               <ChevronDown />
             </Button>
@@ -187,7 +179,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
           render={
             <Button variant="outline" size="sm" className="gap-1.5">
               <UserCog />
-              <span className="hidden max-w-32 truncate lg:inline">{ROLE_LABELS[role]}</span>
+              <span className="hidden max-w-32 truncate lg:inline">{ROLES[role].label}</span>
               <ChevronDown />
             </Button>
           }
@@ -197,9 +189,9 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
             <ShieldHalf className="size-3.5" /> Role-based access
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+          {ROLE_ORDER.map((r) => (
             <DropdownMenuItem key={r} onClick={() => setRole(r)} className={cn(role === r && "bg-accent")}>
-              {ROLE_LABELS[r]}
+              {ROLES[r].label}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>

@@ -19,7 +19,7 @@ const SUGGESTIONS = [
 
 export function Copilot({ className }: { className?: string }) {
   const store = useStore();
-  const { data, autonomy, today } = store;
+  const { data, autonomy, today, stationById } = store;
   const counter = React.useRef(0);
   const nextId = () => {
     counter.current += 1;
@@ -55,7 +55,7 @@ export function Copilot({ className }: { className?: string }) {
           .filter((r) => r.risk === "CRITICAL")
           .slice(0, 3);
         return `If access slips by ${days} days, the plan confidence drops sharply. The lines that break first are ${impacted
-          .map((r) => `${r.name} at ${data.stations.find((s) => s.id === r.sid)?.shortName} (${r.daysLeft}d cover)`)
+          .map((r) => `${r.name} at ${stationById.get(r.sid)?.shortName} (${r.daysLeft}d cover)`)
           .join("; ") || "none — but buffers get thin"}. Open the What-if Simulator to replay it leg by leg.`;
       }
 
@@ -71,8 +71,8 @@ export function Copilot({ className }: { className?: string }) {
             .filter((c) => c.consignmentId === cs.id)
             .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));
           const last = chain[chain.length - 1];
-          const at = data.stations.find((s) => s.id === last?.stationId);
-          return `${cs.qrCode} — "${cs.description}" is ${cs.status.replaceAll("_", " ").toLowerCase()} at ${at?.shortName ?? "unknown"}, last scan ${last ? fmtDate(last.ts, { hour: undefined }) : "n/a"}, ${chain.length} hash-chained events. Destination: ${data.stations.find((s) => s.id === cs.destinationStationId)?.shortName}.`;
+          const at = last ? stationById.get(last.stationId) : undefined;
+          return `${cs.qrCode} — "${cs.description}" is ${cs.status.replaceAll("_", " ").toLowerCase()} at ${at?.shortName ?? "unknown"}, last scan ${last ? fmtDate(last.ts, { hour: undefined }) : "n/a"}, ${chain.length} hash-chained events. Destination: ${stationById.get(cs.destinationStationId)?.shortName}.`;
         }
         return "I could not match that consignment. Try the QR code (e.g. POLAR-46ISEA-1000) or the description.";
       }
@@ -82,8 +82,8 @@ export function Copilot({ className }: { className?: string }) {
         const from = station?.id ?? "st-maitri";
         const edges = buildEvacEdges(data.stations, data.legs);
         const routes = rankEvacRoutes(from, data.stations, edges);
-        if (!routes.length) return `No feasible route modelled from ${data.stations.find((s) => s.id === from)?.shortName} right now (weather/season gates).`;
-        return `Top routes from ${data.stations.find((s) => s.id === from)?.shortName}: ${routes
+        if (!routes.length) return `No feasible route modelled from ${stationById.get(from)?.shortName} right now (weather/season gates).`;
+        return `Top routes from ${stationById.get(from)?.shortName}: ${routes
           .slice(0, 3)
           .map((r) => `${r.label} (${r.totalHours}h, ${Math.round(r.weatherOkProb * 100)}% weather-ok)`)
           .join("  |  ")}. The ranking weighs time, weather gate, transfers and the medical capability at the destination.`;
@@ -99,7 +99,7 @@ export function Copilot({ className }: { className?: string }) {
           .slice(0, 3)
           .map(
             (l) =>
-              `${l.mode}: ${data.stations.find((s) => s.id === l.fromStationId)?.shortName} → ${data.stations.find((s) => s.id === l.toStationId)?.shortName} on ${fmtDate(l.plannedDepart)} (${l.status})`
+              `${l.mode}: ${stationById.get(l.fromStationId)?.shortName} → ${stationById.get(l.toStationId)?.shortName} on ${fmtDate(l.plannedDepart)} (${l.status})`
           )
           .join("\n");
       }
@@ -113,7 +113,7 @@ export function Copilot({ className }: { className?: string }) {
           .flatMap((t) =>
             t.rows
               .filter((r) => (text.includes("critical") ? r.risk === "CRITICAL" : r.risk !== "OK"))
-              .map((r) => `${data.stations.find((s) => s.id === t.id)?.shortName}: ${r.name} ${r.daysLeft}d (${r.risk})`)
+              .map((r) => `${stationById.get(t.id)?.shortName}: ${r.name} ${r.daysLeft}d (${r.risk})`)
           )
           .slice(0, 6);
         if (lines.length) return `Worth watching:\n${lines.join("\n")}`;
@@ -124,7 +124,7 @@ export function Copilot({ className }: { className?: string }) {
       if (text.includes("incident") || text.includes("sos") || text.includes("medical") || text.includes("injury")) {
         const open = data.incidents.filter((i) => i.status !== "RESOLVED" && i.status !== "REVIEWED");
         return open.length
-          ? `Open incidents: ${open.map((i) => `${i.type} (${i.severity}) at ${data.stations.find((s) => s.id === i.stationId)?.shortName} — ${i.status.replaceAll("_", " ")}`).join("; ")}.`
+          ? `Open incidents: ${open.map((i) => `${i.type} (${i.severity}) at ${stationById.get(i.stationId)?.shortName} — ${i.status.replaceAll("_", " ")}`).join("; ")}.`
           : "No open incidents.";
       }
 
@@ -136,7 +136,7 @@ export function Copilot({ className }: { className?: string }) {
 
       return `I can help with stock cover, consignment tracking, transport windows, evacuation options or delay scenarios. Right now ${criticalCount(autonomy)} autonomy lines are critical and ${data.incidents.filter((i) => i.status !== "RESOLVED").length} incidents are open.`;
     },
-    [autonomy, data, store.today]
+    [autonomy, data, stationById, store.today]
   );
 
   const send = (q: string) => {

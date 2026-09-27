@@ -4,6 +4,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { buildSeed, consumptionSeries, type Dataset, TODAY } from "@/lib/data/seed";
 import { digest, GENESIS_HASH } from "@/lib/hash";
+import { ROLES } from "@/lib/roles";
 import {
   computeAutonomy,
   detectAnomalies,
@@ -19,6 +20,7 @@ import type {
   InventoryTxn,
   Role,
   SimulationResult,
+  Station,
   SyncEvent,
   SyncPriority,
   WasteEntry,
@@ -28,6 +30,7 @@ export type LinkMode = "online" | "throttled" | "offline";
 
 export interface StoreValue {
   data: Dataset;
+  stationById: Map<ID, Station>;
   today: Date;
   role: Role;
   setRole: (r: Role) => void;
@@ -71,16 +74,6 @@ export interface StoreValue {
 
 const StoreContext = React.createContext<StoreValue | null>(null);
 
-const ROLE_SCOPE: Record<Role, ID | "all"> = {
-  hq_logistics: "all",
-  expedition_leader: "all",
-  station_leader: "st-maitri",
-  inventory_keeper: "st-bharati",
-  medical_officer: "st-bharati",
-  ship_air_ops: "st-ship",
-  member: "st-maitri",
-};
-
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = React.useState<Dataset>(() => buildSeed());
   const [role, setRoleState] = React.useState<Role>("hq_logistics");
@@ -91,9 +84,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [scanTicker, setScanTicker] = React.useState(0);
   const today = React.useMemo(() => TODAY, []);
 
+  const stationById = React.useMemo(
+    () => new Map<ID, Station>(data.stations.map((s) => [s.id, s])),
+    [data.stations]
+  );
+
   const setRole = React.useCallback((r: Role) => {
     setRoleState(r);
-    setScope(ROLE_SCOPE[r]);
+    setScope(ROLES[r].scope);
   }, []);
 
   const nextResupplyDays = React.useCallback(
@@ -452,6 +450,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const value: StoreValue = {
     data,
+    stationById,
     today,
     role,
     setRole,

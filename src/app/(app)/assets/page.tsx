@@ -4,6 +4,7 @@ import * as React from "react";
 import { CalendarClock, Gauge, Wrench } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { SectionCard, StatCard, Pill, Bar } from "@/components/shared/kit";
+import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fmtDate, title } from "@/lib/format";
-import { cn } from "cn";
 import type { Asset } from "@/lib/types";
 
 const CONDITION_TONE: Record<Asset["condition"], string> = {
@@ -27,7 +27,7 @@ const CONDITION_TONE: Record<Asset["condition"], string> = {
 };
 
 export default function AssetsPage() {
-  const { data, today } = useStore();
+  const { data, stationById, today } = useStore();
   const [selected, setSelected] = React.useState<Asset | null>(null);
 
   const dueSoon = data.groundAssets.filter((a) => Date.parse(a.nextMaintenance) - today.getTime() < 7 * 86400000);
@@ -44,7 +44,7 @@ export default function AssetsPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {data.groundAssets.map((a) => {
-          const station = data.stations.find((s) => s.id === a.stationId);
+          const station = stationById.get(a.stationId);
           const daysToService = Math.round((Date.parse(a.nextMaintenance) - today.getTime()) / 86400000);
           const overdue = daysToService < 0;
           return (
@@ -55,9 +55,9 @@ export default function AssetsPage() {
               action={<Pill className={CONDITION_TONE[a.condition]}>{title(a.condition)}</Pill>}
             >
               <div className="grid grid-cols-3 gap-2 text-center">
-                <Mini label="Station" value={station?.shortName ?? "—"} />
-                <Mini label="Hours" value={a.hoursRun.toLocaleString("en-IN")} />
-                <Mini label="Next svc" value={overdue ? `${Math.abs(daysToService)}d over` : `${daysToService}d`} tone={overdue ? "critical" : daysToService < 7 ? "watch" : "ok"} />
+                <Field label="Station" value={station?.shortName ?? "—"} />
+                <Field label="Hours" value={a.hoursRun.toLocaleString("en-IN")} />
+                <Field label="Next svc" value={overdue ? `${Math.abs(daysToService)}d over` : `${daysToService}d`} tone={overdue ? "critical" : daysToService < 7 ? "watch" : "ok"} />
               </div>
               <Bar
                 value={Math.max(0, 90 - daysToService)}
@@ -143,14 +143,5 @@ function LogServiceDialog({ asset, onClose }: { asset: Asset | null; onClose: ()
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Mini({ label, value, tone = "ok" }: { label: string; value: string; tone?: "ok" | "watch" | "critical" }) {
-  return (
-    <div className="rounded-md border px-2 py-1.5">
-      <p className="text-[9px] tracking-wide text-muted-foreground uppercase">{label}</p>
-      <p className={cn("mt-0.5 text-xs font-semibold", tone === "critical" && "text-red-500", tone === "watch" && "text-amber-500")}>{value}</p>
-    </div>
   );
 }

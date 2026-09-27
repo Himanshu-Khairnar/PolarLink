@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { SectionCard, StatCard, Pill, EmptyState } from "@/components/shared/kit";
+import { StageFlow } from "@/components/shared/stage-flow";
+import { Field } from "@/components/shared/field";
 import { QrTag } from "@/components/shared/qr-tag";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,7 +65,7 @@ const CAT_TONE: Record<CargoCategory, string> = {
 };
 
 export default function CargoPage() {
-  const { data, anomalies } = useStore();
+  const { data, anomalies, stationById } = useStore();
   const [cat, setCat] = React.useState<CargoCategory | "all">("all");
   const [selected, setSelected] = React.useState<ID | null>(null);
 
@@ -109,8 +111,8 @@ export default function CargoPage() {
           </TableHeader>
           <TableBody>
             {filtered.map((c) => {
-              const from = data.stations.find((s) => s.id === c.originStationId);
-              const to = data.stations.find((s) => s.id === c.destinationStationId);
+              const from = stationById.get(c.originStationId);
+              const to = stationById.get(c.destinationStationId);
               return (
                 <TableRow key={c.id} className="cursor-pointer" onClick={() => setSelected(c.id)}>
                   <TableCell className="font-mono text-xs">{c.qrCode}</TableCell>
@@ -141,7 +143,7 @@ export default function CargoPage() {
 }
 
 function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; onClose: () => void }) {
-  const { data, scanConsignment, verifyChain, tamperCustody } = useStore();
+  const { data, stationById, scanConsignment, verifyChain, tamperCustody } = useStore();
   const cs = data.consignments.find((c) => c.id === consignmentId) ?? null;
   const [actor, setActor] = React.useState("Field operator");
   const [verify, setVerify] = React.useState<{ ok: boolean; brokenAt?: string } | null>(null);
@@ -170,14 +172,15 @@ function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; o
           <div className="space-y-3">
             <QrTag value={cs.qrCode} size={132} />
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <Meta label="Weight" value={`${cs.weightKg.toLocaleString("en-IN")} kg`} />
-              <Meta label="Volume" value={`${cs.volumeM3} m³`} />
-              <Meta label="Priority" value={cs.priority} />
-              <Meta label="Hazmat" value={cs.hazmatClass ?? "—"} />
-              <Meta label="Temp" value={cs.tempReq ?? "Ambient"} />
-              <Meta
+              <Field valueClassName="truncate" label="Weight" value={`${cs.weightKg.toLocaleString("en-IN")} kg`} />
+              <Field valueClassName="truncate" label="Volume" value={`${cs.volumeM3} m³`} />
+              <Field valueClassName="truncate" label="Priority" value={cs.priority} />
+              <Field valueClassName="truncate" label="Hazmat" value={cs.hazmatClass ?? "—"} />
+              <Field valueClassName="truncate" label="Temp" value={cs.tempReq ?? "Ambient"} />
+              <Field
+                valueClassName="truncate"
                 label="Route"
-                value={`${data.stations.find((s) => s.id === cs.originStationId)?.shortName} → ${data.stations.find((s) => s.id === cs.destinationStationId)?.shortName}`}
+                value={`${stationById.get(cs.originStationId)?.shortName} → ${stationById.get(cs.destinationStationId)?.shortName}`}
               />
             </div>
           </div>
@@ -185,23 +188,7 @@ function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; o
           <div className="space-y-4">
             <div>
               <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Lifecycle</p>
-              <div className="flex flex-wrap items-center gap-1">
-                {FLOW.map((s, i) => (
-                  <React.Fragment key={s}>
-                    <span
-                      className={cn(
-                        "rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
-                        i <= flowIdx
-                          ? "border-transparent bg-foreground text-background"
-                          : "border-border text-muted-foreground"
-                      )}
-                    >
-                      {title(s)}
-                    </span>
-                    {i < FLOW.length - 1 ? <ChevronRight className="size-3 text-muted-foreground/50" /> : null}
-                  </React.Fragment>
-                ))}
-              </div>
+              <StageFlow steps={FLOW} activeIndex={flowIdx} />
             </div>
 
             <div className="rounded-lg border p-3">
@@ -269,7 +256,7 @@ function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; o
                           <span className="text-[10px] text-muted-foreground">{fmtDateTime(ev.ts)} UTC</span>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          {data.stations.find((s) => s.id === ev.stationId)?.shortName} · {ev.scannedBy} ·{" "}
+                          {stationById.get(ev.stationId)?.shortName} · {ev.scannedBy} ·{" "}
                           {ev.lat.toFixed(3)}, {ev.lon.toFixed(3)}
                         </p>
                         <p className="mt-1 font-mono text-[10px] break-all text-muted-foreground/70">
@@ -284,14 +271,5 @@ function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; o
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Meta({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border px-2 py-1.5">
-      <p className="text-[9px] tracking-wide text-muted-foreground uppercase">{label}</p>
-      <p className="truncate text-xs font-medium">{value}</p>
-    </div>
   );
 }

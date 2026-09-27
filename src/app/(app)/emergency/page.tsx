@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { SectionCard, StatCard, Pill } from "@/components/shared/kit";
+import { StageFlow } from "@/components/shared/stage-flow";
+import { StationSelect } from "@/components/shared/station-select";
 import { NetworkMap } from "@/components/shared/network-map";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -48,7 +50,7 @@ const SEV_TONE: Record<string, string> = {
 };
 
 export default function EmergencyPage() {
-  const { data, raiseIncident, advanceIncident } = useStore();
+  const { data, stationById, raiseIncident, advanceIncident } = useStore();
   const stations = data.stations;
   const [origin, setOrigin] = React.useState<ID>("st-maitri");
 
@@ -64,7 +66,7 @@ export default function EmergencyPage() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Open incidents" value={openIncidents.length} tone={openIncidents.some((i) => i.severity === "critical") ? "critical" : "watch"} icon={<Siren className="size-4" />} hint="Live on HQ dashboard" />
         <StatCard label="Medical" value={medicalIncidents.length} icon={<Stethoscope className="size-4" />} hint="Medicine stock matched to need" />
-        <StatCard label="Feasible routes" value={routes.filter((r) => r.feasible).length} unit="from origin" icon={<RouteIcon className="size-4" />} hint={stations.find((s) => s.id === origin)?.shortName} />
+        <StatCard label="Feasible routes" value={routes.filter((r) => r.feasible).length} unit="from origin" icon={<RouteIcon className="size-4" />} hint={stationById.get(origin)?.shortName} />
         <StatCard label="SOS packet" value="19" unit="bytes" icon={<Radio className="size-4" />} hint="Fits one Iridium SBD message" tone="ok" />
       </div>
 
@@ -86,22 +88,15 @@ export default function EmergencyPage() {
             title="International evacuation engine"
             description="Graph of stations, partner stations and assets with season + weather gates"
             action={
-              <select
+              <StationSelect
+                stations={stations.filter((s) => s.type === "station")}
                 value={origin}
-                onChange={(e) => {
-                  setOrigin(e.target.value);
+                onChange={(v) => {
+                  setOrigin(v);
                   setActiveRoute(null);
                 }}
-                className="h-8 rounded-md border bg-transparent px-2 text-xs outline-none focus-visible:border-ring"
-              >
-                {stations
-                  .filter((s) => s.type === "station")
-                  .map((s) => (
-                    <option key={s.id} value={s.id}>
-                      From {s.shortName}
-                    </option>
-                  ))}
-              </select>
+                prefix="From "
+              />
             }
           >
             <NetworkMap
@@ -150,7 +145,7 @@ export default function EmergencyPage() {
                   <div key={i} className="flex items-center gap-2 text-xs">
                     {e.weatherOkProb > 0.7 ? <CloudLightning className="size-3.5 text-emerald-500" /> : <Waves className="size-3.5 text-amber-500" />}
                     <span className="text-muted-foreground">
-                      {stations.find((s) => s.id === e.from)?.shortName} → {stations.find((s) => s.id === e.to)?.shortName}
+                      {stationById.get(e.from)?.shortName} → {stationById.get(e.to)?.shortName}
                     </span>
                     <span className="ml-auto font-medium tabular-nums">{Math.round(e.weatherOkProb * 100)}%</span>
                   </div>
@@ -187,19 +182,12 @@ function SosButton({ onRaise }: { onRaise: ReturnType<typeof useStore>["raiseInc
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-[10px] text-muted-foreground uppercase">Station</Label>
-              <select
+              <StationSelect
+                stations={data.stations.filter((s) => s.type === "station")}
                 value={stationId}
-                onChange={(e) => setStationId(e.target.value)}
-                className="mt-1 h-8 w-full rounded-md border bg-transparent px-2 text-xs outline-none"
-              >
-                {data.stations
-                  .filter((s) => s.type === "station")
-                  .map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.shortName}
-                    </option>
-                  ))}
-              </select>
+                onChange={setStationId}
+                className="mt-1 w-full"
+              />
             </div>
             <div>
               <Label className="text-[10px] text-muted-foreground uppercase">Type</Label>
@@ -260,7 +248,7 @@ function IncidentRow({
   incident: Incident;
   onAdvance: ReturnType<typeof useStore>["advanceIncident"];
 }) {
-  const { data } = useStore();
+  const { data, stationById } = useStore();
   const idx = INCIDENT_FLOW.indexOf(incident.status);
   const next = idx >= 0 && idx < INCIDENT_FLOW.length - 1 ? INCIDENT_FLOW[idx + 1] : null;
   const actions = data.incidentActions.filter((a) => a.incidentId === incident.id).sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));
@@ -274,7 +262,7 @@ function IncidentRow({
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-medium">
-            {title(incident.type)} · {data.stations.find((s) => s.id === incident.stationId)?.shortName}
+            {title(incident.type)} · {stationById.get(incident.stationId)?.shortName}
           </p>
           <p className="truncate text-[11px] text-muted-foreground">{incident.summary}</p>
         </div>
@@ -284,21 +272,7 @@ function IncidentRow({
 
       {open ? (
         <div className="border-t px-3 py-3">
-          <div className="mb-3 flex flex-wrap items-center gap-1">
-            {INCIDENT_FLOW.map((s, i) => (
-              <React.Fragment key={s}>
-                <span
-                  className={cn(
-                    "rounded-full border px-2 py-0.5 text-[10px]",
-                    i <= idx ? "border-transparent bg-foreground text-background" : "text-muted-foreground"
-                  )}
-                >
-                  {title(s)}
-                </span>
-                {i < INCIDENT_FLOW.length - 1 ? <span className="text-muted-foreground/40">›</span> : null}
-              </React.Fragment>
-            ))}
-          </div>
+          <StageFlow steps={INCIDENT_FLOW} activeIndex={idx} separator="glyph" className="mb-3" />
 
           <div className="mb-3 space-y-1.5">
             {actions.map((a) => (
@@ -335,8 +309,8 @@ function SosPanel({
   origin: ID;
   onRaise: ReturnType<typeof useStore>["raiseIncident"];
 }) {
-  const { data, link } = useStore();
-  const station = data.stations.find((s) => s.id === origin);
+  const { link, stationById } = useStore();
+  const station = stationById.get(origin);
   return (
     <SectionCard title="SOS console" description={`Priority lane from ${station?.shortName ?? "station"}`}>
       <div className="flex flex-col gap-3 rounded-xl border border-red-500/30 bg-red-500/5 p-4">

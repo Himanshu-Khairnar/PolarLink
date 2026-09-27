@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: "PolarLink · Integrated Polar Expedition Logistics",
   description:
     "Offline-first command centre for NCPOR polar expedition planning, cargo custody, station inventory, personnel movement and emergency response. Problem statement 26062.",

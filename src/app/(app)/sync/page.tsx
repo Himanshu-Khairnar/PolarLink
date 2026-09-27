@@ -6,7 +6,8 @@ import { useStore, type LinkMode } from "@/lib/store";
 import { SectionCard, StatCard, Pill, Bar } from "@/components/shared/kit";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { compactBytes, relTime } from "@/lib/format";
+import { RelativeTime } from "@/components/shared/relative-time";
+import { compactBytes } from "@/lib/format";
 import { cn } from "cn";
 import type { SyncPriority } from "@/lib/types";
 
@@ -177,7 +178,9 @@ export default function SyncPage() {
                     <TableCell className="text-right text-xs tabular-nums">{s.bytes}</TableCell>
                     <TableCell>
                       {s.appliedAt ? (
-                        <Pill className="border-emerald-500/30 bg-emerald-500/10 text-emerald-500">applied {relTime(s.appliedAt)}</Pill>
+                        <Pill className="border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+                          applied <RelativeTime value={s.appliedAt} />
+                        </Pill>
                       ) : (
                         <Pill className="border-amber-500/30 bg-amber-500/10 text-amber-500">queued</Pill>
                       )}

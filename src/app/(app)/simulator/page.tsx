@@ -11,8 +11,8 @@ import { fmtDate } from "@/lib/format";
 import { cn } from "cn";
 
 export default function SimulatorPage() {
-  const { data, autonomy } = useStore();
-  const [legId, setLegId] = React.useState(data.legs[2]?.id ?? data.legs[0].id);
+  const { data, autonomy, stationById } = useStore();
+  const [legId, setLegId] = React.useState(data.legs[2]?.id ?? data.legs[0]?.id ?? "");
   const [delay, setDelay] = React.useState(12);
   const [result, setResult] = React.useState<ReturnType<typeof simulateDelay> | null>(null);
   const [mc, setMc] = React.useState<{ confidence: number; p50: number; p90: number } | null>(null);
@@ -41,7 +41,7 @@ export default function SimulatorPage() {
             >
               {data.legs.map((l) => (
                 <option key={l.id} value={l.id}>
-                  {data.stations.find((s) => s.id === l.fromStationId)?.shortName} → {data.stations.find((s) => s.id === l.toStationId)?.shortName} ({l.mode})
+                  {stationById.get(l.fromStationId)?.shortName} → {stationById.get(l.toStationId)?.shortName} ({l.mode})
                 </option>
               ))}
             </select>
@@ -130,7 +130,7 @@ export default function SimulatorPage() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium">{s.item}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          {data.stations.find((st) => st.id === s.stationId)?.shortName} · shortfall {s.shortfallDays}d
+                          {stationById.get(s.stationId)?.shortName} · shortfall {s.shortfallDays}d
                         </p>
                       </div>
                       <RiskBadge risk={s.risk} />

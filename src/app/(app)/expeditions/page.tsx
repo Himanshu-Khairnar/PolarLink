@@ -3,7 +3,8 @@
 import * as React from "react";
 import { CalendarRange, Ship, Plane, Package, Users, ArrowRight } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { SectionCard, Pill, StatCard } from "@/components/shared/kit";
+import { SectionCard, Pill, StatCard, EmptyState } from "@/components/shared/kit";
+import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,9 +29,14 @@ const LEG_STATUS_TONE: Record<string, string> = {
 
 export default function ExpeditionsPage() {
   const { data, today } = useStore();
-  const [activeExp, setActiveExp] = React.useState<ID>(data.expeditions[0].id);
+  const [activeExp, setActiveExp] = React.useState<ID>(data.expeditions[0]?.id ?? "");
 
   const exp = data.expeditions.find((e) => e.id === activeExp) ?? data.expeditions[0];
+
+  if (!exp) {
+    return <EmptyState title="No expeditions" hint="No season plan is loaded for this deployment." />;
+  }
+
   const legs = data.legs.filter((l) => l.expeditionId === exp.id);
 
   return (
@@ -132,9 +138,9 @@ function Gantt({ legs, today }: { legs: Leg[]; today: Date }) {
 }
 
 function LegCard({ leg }: { leg: Leg }) {
-  const { data } = useStore();
-  const from = data.stations.find((s) => s.id === leg.fromStationId);
-  const to = data.stations.find((s) => s.id === leg.toStationId);
+  const { data, stationById } = useStore();
+  const from = stationById.get(leg.fromStationId);
+  const to = stationById.get(leg.toStationId);
   const asset = data.assets.find((a) => a.id === leg.assetId);
   const manifestCargo = data.consignments.filter((c) => c.legId === leg.id);
   const manifestPeople = data.personnel.filter((p) => p.state === "IN_TRANSIT").slice(0, 4);
@@ -155,10 +161,10 @@ function LegCard({ leg }: { leg: Leg }) {
       action={<Pill className={cn("border-transparent text-white", LEG_STATUS_TONE[leg.status])}>{title(leg.status)}</Pill>}
     >
       <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
-        <Field label="Planned depart" value={fmtDate(leg.plannedDepart)} />
-        <Field label="Planned arrive" value={fmtDate(leg.plannedArrive)} />
-        <Field label="Capacity" value={`${(asset?.capacityKg ?? 0).toLocaleString("en-IN")} kg`} />
-        <Field label="Seats" value={`${asset?.seats ?? 0}`} />
+        <Field variant="plain" label="Planned depart" value={fmtDate(leg.plannedDepart)} />
+        <Field variant="plain" label="Planned arrive" value={fmtDate(leg.plannedArrive)} />
+        <Field variant="plain" label="Capacity" value={`${(asset?.capacityKg ?? 0).toLocaleString("en-IN")} kg`} />
+        <Field variant="plain" label="Seats" value={`${asset?.seats ?? 0}`} />
       </div>
       <div className="mt-4 flex items-center gap-3 border-t pt-3">
         <Dialog>
@@ -211,14 +217,5 @@ function LegCard({ leg }: { leg: Leg }) {
         </span>
       </div>
     </SectionCard>
-  );
-}
-
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <p className="text-[10px] tracking-wide text-muted-foreground uppercase">{label}</p>
-      <p className="mt-0.5 font-medium">{value}</p>
-    </div>
   );
 }

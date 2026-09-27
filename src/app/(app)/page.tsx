@@ -2,19 +2,35 @@
 
 import * as React from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Activity, ArrowUpRight, Package, Radio, Ship, Siren, Users } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { SectionCard, StatCard, Pill, RiskBadge, LiveDot, Bar } from "@/components/shared/kit";
 import { Donut, HBars } from "@/components/shared/charts";
-import { NetworkMap } from "@/components/shared/network-map";
-import { Copilot } from "@/components/shared/copilot";
 import { Button } from "@/components/ui/button";
-import { relTime, title } from "@/lib/format";
+
+const NetworkMap = dynamic(
+  () => import("@/components/shared/network-map").then((m) => m.NetworkMap),
+  {
+    ssr: false,
+    loading: () => <div className="h-[420px] w-full animate-pulse rounded-lg bg-muted" />,
+  }
+);
+
+const Copilot = dynamic(
+  () => import("@/components/shared/copilot").then((m) => m.Copilot),
+  {
+    ssr: false,
+    loading: () => <div className="h-48 w-full animate-pulse rounded-lg bg-muted" />,
+  }
+);
+import { RelativeTime } from "@/components/shared/relative-time";
+import { title } from "@/lib/format";
 import type { AutonomyRow, ID } from "@/lib/types";
 import { cn } from "cn";
 
 export default function DashboardPage() {
-  const { data, autonomy, link } = useStore();
+  const { data, autonomy, link, stationById } = useStore();
 
   const stations = data.stations;
   const activeStations = stations.filter((s) => s.type === "station");
@@ -63,7 +79,7 @@ export default function DashboardPage() {
           value={minAutonomy ? minAutonomy.daysLeft : "—"}
           unit="days"
           tone={minAutonomy?.risk === "CRITICAL" ? "critical" : "watch"}
-          hint={minAutonomy ? `${minAutonomy.name} · ${stations.find((s) => s.id === minAutonomy.stationId)?.shortName}` : "All healthy"}
+          hint={minAutonomy ? `${minAutonomy.name} · ${stationById.get(minAutonomy.stationId)?.shortName}` : "All healthy"}
           icon={<Activity className="size-4" />}
         />
         <StatCard label="Active consignments" value={activeConsignments.length} unit={`of ${data.consignments.length}`} icon={<Package className="size-4" />} hint="Multi-leg chain of custody" />
@@ -97,7 +113,7 @@ export default function DashboardPage() {
           >
             <div className="space-y-2.5">
               {relevantRisk(criticalRows).map((r) => {
-                const station = stations.find((s) => s.id === r.stationId);
+                const station = stationById.get(r.stationId);
                 const pct = Math.min(100, (r.daysLeft / Math.max(r.nextResupplyDays, 1)) * 100);
                 return (
                   <div key={`${r.stationId}-${r.itemId}`} className="space-y-1.5">
@@ -181,7 +197,7 @@ export default function DashboardPage() {
           <div className="space-y-2.5">
             {recentCustody.map((ev) => {
               const cs = data.consignments.find((c) => c.id === ev.consignmentId);
-              const station = stations.find((s) => s.id === ev.stationId);
+              const station = stationById.get(ev.stationId);
               return (
                 <div key={ev.id} className="flex items-start gap-2.5 text-xs">
                   <span className="mt-1 flex size-5 shrink-0 items-center justify-center rounded-full bg-muted">
@@ -190,7 +206,7 @@ export default function DashboardPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{cs?.description}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      {ev.toState.replaceAll("_", " ")} · {station?.shortName} · {relTime(ev.ts)}
+                      {ev.toState.replaceAll("_", " ")} · {station?.shortName} · <RelativeTime value={ev.ts} />
                     </p>
                   </div>
                   <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{ev.hash.slice(0, 6)}</span>

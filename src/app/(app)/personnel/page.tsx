@@ -4,6 +4,8 @@ import * as React from "react";
 import { BadgeCheck, HeartPulse, ShieldAlert, Users } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { SectionCard, StatCard, Pill } from "@/components/shared/kit";
+import { StationSelect } from "@/components/shared/station-select";
+import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -31,7 +33,7 @@ const STATE_TONE: Record<Personnel["state"], string> = {
 };
 
 export default function PersonnelPage() {
-  const { data } = useStore();
+  const { data, stationById } = useStore();
   const stations = data.stations.filter((s) => s.type === "station");
   const [filter, setFilter] = React.useState<"all" | "winter" | "summer" | ID>("all");
   const [selected, setSelected] = React.useState<Personnel | null>(null);
@@ -103,7 +105,7 @@ export default function PersonnelPage() {
                     <Pill className={STATE_TONE[p.state]}>{title(p.state)}</Pill>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {data.stations.find((s) => s.id === p.stationId)?.shortName ?? "—"}
+                    {stationById.get(p.stationId ?? "")?.shortName ?? "—"}
                   </TableCell>
                   <TableCell>
                     {p.medicalClearance ? (
@@ -131,11 +133,11 @@ export default function PersonnelPage() {
           </DialogHeader>
           {selected ? (
             <div className="space-y-3 text-sm">
-              <Row label="State" value={title(selected.state)} />
-              <Row label="Location" value={data.stations.find((s) => s.id === selected.stationId)?.name ?? "Not yet deployed"} />
-              <Row label="Medical clearance" value={selected.medicalClearance ? "Cleared" : "Pending"} />
-              <Row label="Blood group" value={selected.bloodGroup} />
-              <Row label="Emergency contact" value={selected.emergencyContact} />
+              <Field variant="row" label="State" value={title(selected.state)} />
+              <Field variant="row" label="Location" value={stationById.get(selected.stationId ?? "")?.name ?? "Not yet deployed"} />
+              <Field variant="row" label="Medical clearance" value={selected.medicalClearance ? "Cleared" : "Pending"} />
+              <Field variant="row" label="Blood group" value={selected.bloodGroup} />
+              <Field variant="row" label="Emergency contact" value={selected.emergencyContact} />
               <div>
                 <p className="text-[10px] tracking-wide text-muted-foreground uppercase">Training</p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
@@ -155,7 +157,7 @@ export default function PersonnelPage() {
 function RollCall() {
   const { data, advanceIncident, raiseIncident } = useStore();
   const stations = data.stations.filter((s) => s.type === "station");
-  const [stationId, setStationId] = React.useState<ID>(stations[0].id);
+  const [stationId, setStationId] = React.useState<ID>(stations[0]?.id ?? "");
   const [present, setPresent] = React.useState<Set<ID>>(new Set());
   const [search, setSearch] = React.useState("");
 
@@ -177,20 +179,16 @@ function RollCall() {
         </Button>
       }
     >
-      <select
+      <StationSelect
+        stations={stations}
         value={stationId}
-        onChange={(e) => {
-          setStationId(e.target.value);
+        onChange={(v) => {
+          setStationId(v);
           setPresent(new Set());
         }}
-        className="mb-3 h-8 w-full rounded-md border bg-transparent px-2 text-xs outline-none focus-visible:border-ring"
-      >
-        {stations.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.name}
-          </option>
-        ))}
-      </select>
+        label="name"
+        className="mb-3 w-full"
+      />
       <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter by name…" className="mb-3 h-8 text-xs" />
 
       <div className="mb-3 flex items-center justify-between rounded-lg border px-3 py-2 text-xs">
@@ -258,14 +256,5 @@ function RollCall() {
         <p className="mt-2 text-[11px] text-emerald-500">Everyone accounted for. Muster can be closed.</p>
       )}
     </SectionCard>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b pb-1.5 last:border-0">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-right text-xs font-medium">{value}</span>
-    </div>
   );
 }

@@ -3,38 +3,6 @@
 import * as React from "react";
 import { cn } from "cn";
 
-export function Sparkline({
-  data,
-  width = 160,
-  height = 40,
-  className,
-  strokeClass = "stroke-foreground",
-}: {
-  data: number[];
-  width?: number;
-  height?: number;
-  className?: string;
-  strokeClass?: string;
-}) {
-  const path = React.useMemo(() => {
-    if (data.length < 2) return "";
-    const min = Math.min(...data);
-    const max = Math.max(...data);
-    const span = max - min || 1;
-    const step = width / (data.length - 1);
-    return data
-      .map((d, i) => `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${(height - ((d - min) / span) * (height - 4) - 2).toFixed(1)}`)
-      .join(" ");
-  }, [data, width, height]);
-  const area = `${path} L${width},${height} L0,${height} Z`;
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} className={cn("w-full", className)} preserveAspectRatio="none">
-      <path d={area} className="fill-foreground/5" />
-      <path d={path} fill="none" strokeWidth={1.5} className={cn(strokeClass, "stroke-[1.5px]")} />
-    </svg>
-  );
-}
-
 export function ForecastChart({
   history,
   forecast,

@@ -39,12 +39,6 @@ export function relTime(input: string | Date): string {
   return `${Math.round(hours / 24)}d ${suffix}`;
 }
 
-export function daysBetween(a: string | Date, b: string | Date): number {
-  const da = typeof a === "string" ? new Date(a) : a;
-  const db = typeof b === "string" ? new Date(b) : b;
-  return Math.round((db.getTime() - da.getTime()) / 86400000);
-}
-
 export function title(s: string): string {
   return s
     .replaceAll("_", " ")
@@ -62,13 +56,4 @@ export const RISK_STYLES: Record<string, string> = {
   CRITICAL: "text-red-500 border-red-500/30 bg-red-500/10",
   WATCH: "text-amber-500 border-amber-500/30 bg-amber-500/10",
   OK: "text-emerald-500 border-emerald-500/30 bg-emerald-500/10",
-};
-
-export const SEVERITY_STYLES: Record<string, string> = {
-  critical: "text-red-500 border-red-500/30 bg-red-500/10",
-  high: "text-orange-500 border-orange-500/30 bg-orange-500/10",
-  warning: "text-amber-500 border-amber-500/30 bg-amber-500/10",
-  medium: "text-amber-500 border-amber-500/30 bg-amber-500/10",
-  low: "text-sky-500 border-sky-500/30 bg-sky-500/10",
-  info: "text-sky-500 border-sky-500/30 bg-sky-500/10",
 };
