@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ArrowDownToLine, ArrowUpFromLine, Cloud, Radio, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { useStore, type LinkMode } from "@/lib/store";
-import { SectionCard, StatCard, Pill, Bar } from "@/components/shared/kit";
+import { SectionCard, StatStrip, Stat, Pill, Bar } from "@/components/shared/kit";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RelativeTime } from "@/components/shared/relative-time";
@@ -40,12 +40,12 @@ export default function SyncPage() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Pending events" value={pending.length} unit={`${compactBytes(pendingBytes)}`} tone={pending.length ? "watch" : "ok"} icon={<ArrowUpFromLine className="size-4" />} hint="Queued in priority lanes" />
-        <StatCard label="Applied" value={applied.length} tone="ok" icon={<ArrowDownToLine className="size-4" />} hint="Reconciled at HQ" />
-        <StatCard label="Lamport clock" value={Math.max(...data.syncLog.map((s) => s.lamportTs), 0)} icon={<RefreshCw className="size-4" />} hint="Last-writer-wins ordering" />
-        <StatCard label="Edge nodes" value={4} unit="active" icon={<Cloud className="size-4" />} hint="Maitri · Bharati · ship · Himadri" />
-      </div>
+      <StatStrip>
+        <Stat label="Pending events" value={pending.length} unit={`${compactBytes(pendingBytes)}`} tone={pending.length ? "watch" : "ok"} icon={<ArrowUpFromLine className="size-4" />} hint="Queued in priority lanes" />
+        <Stat label="Applied" value={applied.length} tone="ok" icon={<ArrowDownToLine className="size-4" />} hint="Reconciled at HQ" />
+        <Stat label="Lamport clock" value={Math.max(...data.syncLog.map((s) => s.lamportTs), 0)} icon={<RefreshCw className="size-4" />} hint="Last-writer-wins ordering" />
+        <Stat label="Edge nodes" value={4} unit="active" icon={<Cloud className="size-4" />} hint="Maitri · Bharati · ship · Himadri" />
+      </StatStrip>
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
         <div className="space-y-4">

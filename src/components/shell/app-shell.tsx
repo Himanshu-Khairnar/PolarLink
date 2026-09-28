@@ -7,8 +7,32 @@ import { Topbar } from "@/components/shell/topbar";
 import { useStore } from "@/lib/store";
 import { Snowflake } from "lucide-react";
 
+const SIDEBAR_KEY = "polarlink:sidebar";
+let sidebarStore = typeof window !== "undefined" && window.localStorage.getItem(SIDEBAR_KEY) === "closed" ? false : true;
+const sidebarListeners = new Set<() => void>();
+
+function subscribeSidebar(listener: () => void) {
+  sidebarListeners.add(listener);
+  return () => {
+    sidebarListeners.delete(listener);
+  };
+}
+
+function setSidebarOpen(next: boolean) {
+  sidebarStore = next;
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(SIDEBAR_KEY, next ? "open" : "closed");
+  }
+  sidebarListeners.forEach((listener) => listener());
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [navOpen, setNavOpen] = React.useState(false);
+  const sidebarOpen = React.useSyncExternalStore(
+    subscribeSidebar,
+    () => sidebarStore,
+    () => true
+  );
   const { glare } = useStore();
 
   React.useEffect(() => {
@@ -17,7 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-svh w-full bg-background">
-      <Sidebar />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Sheet open={navOpen} onOpenChange={setNavOpen}>
         <SheetContent side="left" className="w-72 p-0">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
@@ -34,7 +58,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </SheetContent>
       </Sheet>
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onMenu={() => setNavOpen(true)} />
+        <Topbar
+          onMenu={() => setNavOpen(true)}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        />
         <main className="flex-1 px-3 py-4 sm:px-5 sm:py-6">{children}</main>
       </div>
     </div>

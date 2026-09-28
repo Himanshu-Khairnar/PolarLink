@@ -3,7 +3,7 @@
 import * as React from "react";
 import { AlertTriangle, Play, Ship, Gauge, TrendingDown } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { SectionCard, StatCard, RiskBadge } from "@/components/shared/kit";
+import { SectionCard, StatStrip, Stat, RiskBadge } from "@/components/shared/kit";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { monteCarloSeason, simulateDelay } from "@/lib/engine";
@@ -74,8 +74,8 @@ export default function SimulatorPage() {
 
       {result ? (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard
+          <StatStrip>
+            <Stat
               label="Plan confidence"
               value={result.confidence}
               unit="%"
@@ -83,10 +83,10 @@ export default function SimulatorPage() {
               icon={<Gauge className="size-4" />}
               hint="All critical cargo on time"
             />
-            <StatCard label="Deliveries at risk" value={result.failedDeliveries.length} tone={result.failedDeliveries.length ? "critical" : "ok"} icon={<AlertTriangle className="size-4" />} hint="Break their window" />
-            <StatCard label="Stations impacted" value={new Set(result.stationImpact.map((s) => s.stationId)).size} icon={<Ship className="size-4" />} hint="Cover shortfall" />
-            <StatCard label="Legs slipping" value={result.legs.filter((l) => l.missed).length} icon={<TrendingDown className="size-4" />} hint={`+${result.delayDays} d on upstream`} />
-          </div>
+            <Stat label="Deliveries at risk" value={result.failedDeliveries.length} tone={result.failedDeliveries.length ? "critical" : "ok"} icon={<AlertTriangle className="size-4" />} hint="Break their window" />
+            <Stat label="Stations impacted" value={new Set(result.stationImpact.map((s) => s.stationId)).size} icon={<Ship className="size-4" />} hint="Cover shortfall" />
+            <Stat label="Legs slipping" value={result.legs.filter((l) => l.missed).length} icon={<TrendingDown className="size-4" />} hint={`+${result.delayDays} d on upstream`} />
+          </StatStrip>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <SectionCard title="Confidence meter" description="Share of the Monte Carlo draws where every critical delivery lands in-window">

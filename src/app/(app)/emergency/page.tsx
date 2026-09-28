@@ -12,7 +12,7 @@ import {
   Waves,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { SectionCard, StatCard, Pill } from "@/components/shared/kit";
+import { SectionCard, StatStrip, Stat, Pill } from "@/components/shared/kit";
 import { StageFlow } from "@/components/shared/stage-flow";
 import { StationSelect } from "@/components/shared/station-select";
 import { NetworkMap } from "@/components/shared/network-map";
@@ -63,12 +63,12 @@ export default function EmergencyPage() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Open incidents" value={openIncidents.length} tone={openIncidents.some((i) => i.severity === "critical") ? "critical" : "watch"} icon={<Siren className="size-4" />} hint="Live on HQ dashboard" />
-        <StatCard label="Medical" value={medicalIncidents.length} icon={<Stethoscope className="size-4" />} hint="Medicine stock matched to need" />
-        <StatCard label="Feasible routes" value={routes.filter((r) => r.feasible).length} unit="from origin" icon={<RouteIcon className="size-4" />} hint={stationById.get(origin)?.shortName} />
-        <StatCard label="SOS packet" value="19" unit="bytes" icon={<Radio className="size-4" />} hint="Fits one Iridium SBD message" tone="ok" />
-      </div>
+      <StatStrip>
+        <Stat label="Open incidents" value={openIncidents.length} tone={openIncidents.some((i) => i.severity === "critical") ? "critical" : "watch"} icon={<Siren className="size-4" />} hint="Live on HQ dashboard" />
+        <Stat label="Medical" value={medicalIncidents.length} icon={<Stethoscope className="size-4" />} hint="Medicine stock matched to need" />
+        <Stat label="Feasible routes" value={routes.filter((r) => r.feasible).length} unit="from origin" icon={<RouteIcon className="size-4" />} hint={stationById.get(origin)?.shortName} />
+        <Stat label="SOS packet" value="19" unit="bytes" icon={<Radio className="size-4" />} hint="Fits one Iridium SBD message" tone="ok" />
+      </StatStrip>
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">

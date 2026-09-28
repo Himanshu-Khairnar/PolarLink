@@ -5,7 +5,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Activity, ArrowUpRight, Package, Radio, Ship, Siren, Users } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { SectionCard, StatCard, Pill, RiskBadge, LiveDot, Bar } from "@/components/shared/kit";
+import { SectionCard, StatStrip, Stat, Pill, RiskBadge, LiveDot, Bar } from "@/components/shared/kit";
 import { Donut, HBars } from "@/components/shared/charts";
 import { Button } from "@/components/ui/button";
 
@@ -73,8 +73,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4">
       {/* KPI row */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard
+      <StatStrip cols="grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <Stat
           label="Min autonomy"
           value={minAutonomy ? minAutonomy.daysLeft : "—"}
           unit="days"
@@ -82,12 +82,12 @@ export default function DashboardPage() {
           hint={minAutonomy ? `${minAutonomy.name} · ${stationById.get(minAutonomy.stationId)?.shortName}` : "All healthy"}
           icon={<Activity className="size-4" />}
         />
-        <StatCard label="Active consignments" value={activeConsignments.length} unit={`of ${data.consignments.length}`} icon={<Package className="size-4" />} hint="Multi-leg chain of custody" />
-        <StatCard label="Legs underway" value={inTransitLegs.length} unit="legs" icon={<Ship className="size-4" />} hint={inTransitLegs.map((l) => title(l.status)).join(", ") || "Season idle"} />
-        <StatCard label="Crew on station" value={crewOnStation.length} unit="people" icon={<Users className="size-4" />} hint={`${crewOnStation.filter((p) => p.team === "winter").length} winter-over`} />
-        <StatCard label="Open incidents" value={openIncidents.length} tone={openIncidents.some((i) => i.severity === "critical") ? "critical" : "watch"} unit="live" icon={<Siren className="size-4" />} hint={`${data.incidents.filter((i) => i.type === "medical").length} medical this season`} />
-        <StatCard label="Pending sync" value={pendingSync} unit="events" icon={<Radio className="size-4" />} hint={link === "offline" ? "Node buffering locally" : "Lanes draining in order"} />
-      </div>
+        <Stat label="Active consignments" value={activeConsignments.length} unit={`of ${data.consignments.length}`} icon={<Package className="size-4" />} hint="Multi-leg chain of custody" />
+        <Stat label="Legs underway" value={inTransitLegs.length} unit="legs" icon={<Ship className="size-4" />} hint={inTransitLegs.map((l) => title(l.status)).join(", ") || "Season idle"} />
+        <Stat label="Crew on station" value={crewOnStation.length} unit="people" icon={<Users className="size-4" />} hint={`${crewOnStation.filter((p) => p.team === "winter").length} winter-over`} />
+        <Stat label="Open incidents" value={openIncidents.length} tone={openIncidents.some((i) => i.severity === "critical") ? "critical" : "watch"} unit="live" icon={<Siren className="size-4" />} hint={`${data.incidents.filter((i) => i.type === "medical").length} medical this season`} />
+        <Stat label="Pending sync" value={pendingSync} unit="events" icon={<Radio className="size-4" />} hint={link === "offline" ? "Node buffering locally" : "Lanes draining in order"} />
+      </StatStrip>
 
       <div className="grid gap-4 xl:grid-cols-3">
         <SectionCard
@@ -171,10 +171,10 @@ export default function DashboardPage() {
         <SectionCard title="Custody pipeline" description="Consignments by chain stage">
           <Donut
             segments={[
-              { value: statusBuckets[0].value, className: "text-muted-foreground", label: "Planned / packed" },
-              { value: statusBuckets[1].value, className: "text-sky-500", label: "In transit / hub" },
-              { value: statusBuckets[2].value, className: "text-emerald-500", label: "Loaded / offloaded" },
-              { value: statusBuckets[3].value, className: "text-violet-500", label: "Retrograde" },
+              { value: statusBuckets[0].value, className: "text-chart-1", label: "Planned / packed" },
+              { value: statusBuckets[1].value, className: "text-chart-2", label: "In transit / hub" },
+              { value: statusBuckets[2].value, className: "text-chart-3", label: "Loaded / offloaded" },
+              { value: statusBuckets[3].value, className: "text-chart-5", label: "Retrograde" },
             ]}
             centerLabel={`${data.consignments.length}`}
             centerSub="consignments"
@@ -184,11 +184,11 @@ export default function DashboardPage() {
         <SectionCard title="Season demand mix" description="Synthetic consumption baseline, units/day" className="xl:col-span-1">
           <HBars
             rows={[
-              { label: "Food", value: 108, className: "bg-sky-500" },
-              { label: "Diesel", value: 720, className: "bg-amber-500" },
-              { label: "Medical", value: 9, className: "bg-red-500" },
-              { label: "Spares", value: 3.4, className: "bg-emerald-500" },
-              { label: "Scientific", value: 2.1, className: "bg-violet-500" },
+              { label: "Food", value: 108, className: "bg-chart-1" },
+              { label: "Diesel", value: 720, className: "bg-chart-2" },
+              { label: "Medical", value: 9, className: "bg-chart-3" },
+              { label: "Spares", value: 3.4, className: "bg-chart-4" },
+              { label: "Scientific", value: 2.1, className: "bg-chart-5" },
             ]}
           />
         </SectionCard>

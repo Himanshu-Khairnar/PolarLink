@@ -3,7 +3,7 @@
 import * as React from "react";
 import { CalendarClock, Gauge, Wrench } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { SectionCard, StatCard, Pill, Bar } from "@/components/shared/kit";
+import { SectionCard, StatStrip, Stat, Pill, Bar } from "@/components/shared/kit";
 import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,12 +35,12 @@ export default function AssetsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Tracked assets" value={data.groundAssets.length} icon={<Wrench className="size-4" />} hint="Across 3 stations" />
-        <StatCard label="Needs attention" value={down.length} tone={down.length ? "watch" : "ok"} icon={<Gauge className="size-4" />} hint={down.map((d) => d.name).slice(0, 2).join(", ") || "All healthy"} />
-        <StatCard label="Service due ≤ 7d" value={dueSoon.length} tone={dueSoon.length ? "watch" : "ok"} icon={<CalendarClock className="size-4" />} hint={dueSoon.map((d) => d.tag).slice(0, 2).join(", ") || "None"} />
-        <StatCard label="Service logs" value={data.maintenance.length} tone="ok" icon={<Wrench className="size-4" />} hint="Audit-ready" />
-      </div>
+      <StatStrip>
+        <Stat label="Tracked assets" value={data.groundAssets.length} icon={<Wrench className="size-4" />} hint="Across 3 stations" />
+        <Stat label="Needs attention" value={down.length} tone={down.length ? "watch" : "ok"} icon={<Gauge className="size-4" />} hint={down.map((d) => d.name).slice(0, 2).join(", ") || "All healthy"} />
+        <Stat label="Service due ≤ 7d" value={dueSoon.length} tone={dueSoon.length ? "watch" : "ok"} icon={<CalendarClock className="size-4" />} hint={dueSoon.map((d) => d.tag).slice(0, 2).join(", ") || "None"} />
+        <Stat label="Service logs" value={data.maintenance.length} tone="ok" icon={<Wrench className="size-4" />} hint="Audit-ready" />
+      </StatStrip>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {data.groundAssets.map((a) => {

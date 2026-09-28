@@ -11,7 +11,7 @@ import {
   Truck,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { SectionCard, StatCard, Pill, EmptyState } from "@/components/shared/kit";
+import { SectionCard, StatStrip, Stat, Pill, EmptyState } from "@/components/shared/kit";
 import { StageFlow } from "@/components/shared/stage-flow";
 import { Field } from "@/components/shared/field";
 import { QrTag } from "@/components/shared/qr-tag";
@@ -73,18 +73,18 @@ export default function CargoPage() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Consignments" value={data.consignments.length} icon={<Package className="size-4" />} hint="46-ISEA + Arctic" />
-        <StatCard label="In transit" value={data.consignments.filter((c) => ["IN_TRANSIT_TO_PORT", "AT_HUB", "LOADED"].includes(c.status)).length} icon={<Truck className="size-4" />} hint="Across the chain" />
-        <StatCard label="Custody events" value={data.custody.length} icon={<ScanLine className="size-4" />} hint="Hash-chained scans" tone="ok" />
-        <StatCard
+      <StatStrip>
+        <Stat label="Consignments" value={data.consignments.length} icon={<Package className="size-4" />} hint="46-ISEA + Arctic" />
+        <Stat label="In transit" value={data.consignments.filter((c) => ["IN_TRANSIT_TO_PORT", "AT_HUB", "LOADED"].includes(c.status)).length} icon={<Truck className="size-4" />} hint="Across the chain" />
+        <Stat label="Custody events" value={data.custody.length} icon={<ScanLine className="size-4" />} hint="Hash-chained scans" tone="ok" />
+        <Stat
           label="Dwell anomalies"
           value={anomalies.length}
           icon={<AlertTriangle className="size-4" />}
           tone={anomalies.length ? "watch" : "ok"}
           hint="Robust z-score > 3.5"
         />
-      </div>
+      </StatStrip>
 
       <Tabs value={cat} onValueChange={(v) => setCat(v as CargoCategory | "all")}>
         <TabsList className="flex-wrap">

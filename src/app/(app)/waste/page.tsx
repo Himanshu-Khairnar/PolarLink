@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Leaf, Recycle, Ship, Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { SectionCard, StatCard, Pill, Bar } from "@/components/shared/kit";
+import { SectionCard, StatStrip, Stat, Pill, Bar } from "@/components/shared/kit";
 import { StageFlow } from "@/components/shared/stage-flow";
 import { Donut, HBars } from "@/components/shared/charts";
 import { Button } from "@/components/ui/button";
@@ -16,21 +16,21 @@ import type { WasteEntry } from "@/lib/types";
 const STAGES: WasteEntry["stage"][] = ["generated", "segregated", "packed", "loaded", "returned"];
 
 const CAT_TEXT: Record<WasteEntry["category"], string> = {
-  metal: "text-slate-400",
-  plastic: "text-sky-500",
-  hazardous: "text-red-500",
-  biological: "text-amber-500",
-  paper: "text-emerald-500",
-  glass: "text-violet-500",
+  metal: "text-chart-4",
+  plastic: "text-chart-1",
+  hazardous: "text-destructive",
+  biological: "text-chart-2",
+  paper: "text-chart-3",
+  glass: "text-chart-5",
 };
 
 const CAT_COLOR: Record<WasteEntry["category"], string> = {
-  metal: "bg-slate-400",
-  plastic: "bg-sky-500",
-  hazardous: "bg-red-500",
-  biological: "bg-amber-500",
-  paper: "bg-emerald-500",
-  glass: "bg-violet-500",
+  metal: "bg-chart-4",
+  plastic: "bg-chart-1",
+  hazardous: "bg-destructive",
+  biological: "bg-chart-2",
+  paper: "bg-chart-3",
+  glass: "bg-chart-5",
 };
 
 export default function WastePage() {
@@ -47,12 +47,12 @@ export default function WastePage() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Waste generated" value={Math.round(total / 1000)} unit="t" icon={<Trash2 className="size-4" />} hint="Reverse cargo tracked" />
-        <StatCard label="Returned" value={Math.round(returned / 1000)} unit="t" tone="ok" icon={<Ship className="size-4" />} hint="Removed from the continent" />
-        <StatCard label="Hazardous" value={hazardous} unit="kg" tone={hazardous ? "watch" : "ok"} icon={<Leaf className="size-4" />} hint="Class 8 batteries, oils" />
-        <StatCard label="Compliance" value={compliance} unit="%" tone={compliance > 70 ? "ok" : "watch"} icon={<Recycle className="size-4" />} hint="Madrid Protocol Annex III" />
-      </div>
+      <StatStrip>
+        <Stat label="Waste generated" value={Math.round(total / 1000)} unit="t" icon={<Trash2 className="size-4" />} hint="Reverse cargo tracked" />
+        <Stat label="Returned" value={Math.round(returned / 1000)} unit="t" tone="ok" icon={<Ship className="size-4" />} hint="Removed from the continent" />
+        <Stat label="Hazardous" value={hazardous} unit="kg" tone={hazardous ? "watch" : "ok"} icon={<Leaf className="size-4" />} hint="Class 8 batteries, oils" />
+        <Stat label="Compliance" value={compliance} unit="%" tone={compliance > 70 ? "ok" : "watch"} icon={<Recycle className="size-4" />} hint="Madrid Protocol Annex III" />
+      </StatStrip>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <SectionCard title="By category" description="Season-to-date, all stations">

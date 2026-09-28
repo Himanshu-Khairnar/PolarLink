@@ -7,8 +7,9 @@ import { cn } from "cn";
 import { NAV } from "@/components/shell/nav";
 import { useStore } from "@/lib/store";
 import { LiveDot } from "@/components/shared/kit";
+import { Button } from "@/components/ui/button";
 import { pingBackend } from "@/lib/api";
-import { ShieldCheck, Snowflake } from "lucide-react";
+import { PanelLeftClose, ShieldCheck, Snowflake } from "lucide-react";
 
 export function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -40,7 +41,7 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
                 )}
               >
                 <Icon className="size-4 shrink-0" />
-                <span className="truncate">{item.label}</span>
+                <span className="leading-snug">{item.label}</span>
                 {item.href === "/emergency" && criticalIncidents > 0 ? (
                   <span className={cn("ml-auto rounded-full px-1.5 text-[10px] font-semibold", active ? "bg-background/20 text-background" : "bg-red-500/15 text-red-500")}>
                     {criticalIncidents}
@@ -55,7 +56,7 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ open = true, onClose }: { open?: boolean; onClose?: () => void }) {
   const { link } = useStore();
   const linkTone = link === "online" ? "emerald" : link === "throttled" ? "amber" : "red";
   const [apiOnline, setApiOnline] = React.useState<boolean | null>(null);
@@ -71,7 +72,7 @@ export function Sidebar() {
   }, []);
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r bg-sidebar lg:flex">
+    <aside className={cn("sticky top-0 h-svh shrink-0 flex-col border-r bg-sidebar", open ? "hidden w-64 lg:flex" : "hidden")}>
       <div className="flex h-14 items-center gap-2.5 border-b px-4">
         <span className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
           <Snowflake className="size-4.5" />
@@ -80,6 +81,15 @@ export function Sidebar() {
           <p className="font-heading text-sm font-semibold tracking-tight">PolarLink</p>
           <p className="text-[10px] text-muted-foreground">NCPOR · MoES</p>
         </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="ml-auto text-muted-foreground"
+          onClick={onClose}
+          aria-label="Close sidebar"
+        >
+          <PanelLeftClose className="size-4" />
+        </Button>
       </div>
       <NavList />
       <div className="border-t p-3">

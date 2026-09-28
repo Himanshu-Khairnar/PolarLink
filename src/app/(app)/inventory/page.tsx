@@ -4,7 +4,7 @@ import * as React from "react";
 import { Boxes, CalendarClock, FlaskConical, TrendingDown } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { consumptionSeries } from "@/lib/data/seed";
-import { SectionCard, StatCard, Pill, RiskBadge, Bar } from "@/components/shared/kit";
+import { SectionCard, StatStrip, Stat, Pill, RiskBadge, Bar } from "@/components/shared/kit";
 import { Field } from "@/components/shared/field";
 import { ForecastChart } from "@/components/shared/charts";
 import { Button } from "@/components/ui/button";
@@ -49,8 +49,8 @@ export default function InventoryPage() {
         </TabsList>
       </Tabs>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
+      <StatStrip>
+        <Stat
           label="Lowest autonomy"
           value={minRow ? minRow.daysLeft : "—"}
           unit="days"
@@ -58,10 +58,10 @@ export default function InventoryPage() {
           hint={minRow ? minRow.name : "No data"}
           icon={<TrendingDown className="size-4" />}
         />
-        <StatCard label="Critical lines" value={critical.length} unit="items" tone={critical.length ? "critical" : "ok"} hint={critical.map((c) => c.name).slice(0, 2).join(", ") || "None"} icon={<Boxes className="size-4" />} />
-        <StatCard label="Watch lines" value={watch.length} unit="items" tone={watch.length ? "watch" : "ok"} hint="Within 25% of resupply gap" icon={<FlaskConical className="size-4" />} />
-        <StatCard label="Next resupply" value={resupply} unit="days" hint={station?.shortName} icon={<CalendarClock className="size-4" />} />
-      </div>
+        <Stat label="Critical lines" value={critical.length} unit="items" tone={critical.length ? "critical" : "ok"} hint={critical.map((c) => c.name).slice(0, 2).join(", ") || "None"} icon={<Boxes className="size-4" />} />
+        <Stat label="Watch lines" value={watch.length} unit="items" tone={watch.length ? "watch" : "ok"} hint="Within 25% of resupply gap" icon={<FlaskConical className="size-4" />} />
+        <Stat label="Next resupply" value={resupply} unit="days" hint={station?.shortName} icon={<CalendarClock className="size-4" />} />
+      </StatStrip>
 
       <SectionCard
         title={`${station?.shortName} · stock cover`}

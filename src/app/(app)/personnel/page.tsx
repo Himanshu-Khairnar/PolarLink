@@ -3,7 +3,7 @@
 import * as React from "react";
 import { BadgeCheck, HeartPulse, ShieldAlert, Users } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { SectionCard, StatCard, Pill } from "@/components/shared/kit";
+import { SectionCard, StatStrip, Stat, Pill } from "@/components/shared/kit";
 import { StationSelect } from "@/components/shared/station-select";
 import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
@@ -48,18 +48,18 @@ export default function PersonnelPage() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Personnel" value={data.personnel.length} unit="on roster" icon={<Users className="size-4" />} hint={`${data.personnel.filter((p) => p.team === "winter").length} winter-over`} />
-        <StatCard label="On station" value={onStation.length} icon={<BadgeCheck className="size-4" />} tone="ok" hint={`${onStation.filter((p) => p.stationId === "st-bharati").length} at Bharati`} />
-        <StatCard label="In transit" value={data.personnel.filter((p) => p.state === "IN_TRANSIT").length} hint="Via Cape Town gateway" icon={<Users className="size-4" />} />
-        <StatCard
+      <StatStrip>
+        <Stat label="Personnel" value={data.personnel.length} unit="on roster" icon={<Users className="size-4" />} hint={`${data.personnel.filter((p) => p.team === "winter").length} winter-over`} />
+        <Stat label="On station" value={onStation.length} icon={<BadgeCheck className="size-4" />} tone="ok" hint={`${onStation.filter((p) => p.stationId === "st-bharati").length} at Bharati`} />
+        <Stat label="In transit" value={data.personnel.filter((p) => p.state === "IN_TRANSIT").length} hint="Via Cape Town gateway" icon={<Users className="size-4" />} />
+        <Stat
           label="Medical flags"
           value={data.personnel.filter((p) => !p.medicalClearance).length}
           tone={data.personnel.some((p) => !p.medicalClearance) ? "watch" : "ok"}
           hint="Clearance pending"
           icon={<HeartPulse className="size-4" />}
         />
-      </div>
+      </StatStrip>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <SectionCard title="Roster" description="Nomination → medical → training → travel → station → de-induction" contentClassName="px-0">

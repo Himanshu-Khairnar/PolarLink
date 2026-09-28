@@ -49,9 +49,9 @@ export function ForecastChart({
           strokeDasharray="5 4"
         />
       ) : null}
-      <path d={histPath} fill="none" strokeWidth={2} className="stroke-foreground" />
-      <path d={fcArea} fill="url(#fcGrad)" className="text-foreground" />
-      <path d={fc} fill="none" strokeWidth={2} strokeDasharray="5 4" className="stroke-foreground/60" />
+      <path d={histPath} fill="none" strokeWidth={2} className="stroke-chart-1" />
+      <path d={fcArea} fill="url(#fcGrad)" className="text-chart-1" />
+      <path d={fc} fill="none" strokeWidth={2} strokeDasharray="5 4" className="stroke-chart-3" />
       <line x1={x(history.length)} x2={x(history.length)} y1={0} y2={height} className="stroke-muted-foreground/40" strokeWidth={1} />
     </svg>
   );

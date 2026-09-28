@@ -21,6 +21,8 @@ import {
   Bell,
   ChevronDown,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Radio,
   ShieldHalf,
   Snowflake,
@@ -70,7 +72,15 @@ function Clock() {
   );
 }
 
-export function Topbar({ onMenu }: { onMenu: () => void }) {
+export function Topbar({
+  onMenu,
+  sidebarOpen = true,
+  onToggleSidebar,
+}: {
+  onMenu: () => void;
+  sidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
+}) {
   const pathname = usePathname();
   const page = PAGES[pathname] ?? { title: "PolarLink", subtitle: "" };
   const { data, stationById, role, setRole, scope, setScope, link, setLink, glare, setGlare } = useStore();
@@ -83,6 +93,16 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-3 backdrop-blur-xl sm:px-5">
       <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenu} aria-label="Open navigation">
         <Menu />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className="hidden lg:inline-flex"
+        onClick={onToggleSidebar}
+        aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+      >
+        {sidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
       </Button>
 
       <div className="min-w-0 flex-1">

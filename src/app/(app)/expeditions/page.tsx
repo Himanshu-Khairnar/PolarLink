@@ -3,7 +3,7 @@
 import * as React from "react";
 import { CalendarRange, Ship, Plane, Package, Users, ArrowRight } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { SectionCard, Pill, StatCard, EmptyState } from "@/components/shared/kit";
+import { SectionCard, StatStrip, Stat, Pill, EmptyState } from "@/components/shared/kit";
 import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,17 +41,17 @@ export default function ExpeditionsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Expedition" value={exp.code} hint={exp.name} icon={<CalendarRange className="size-4" />} />
-        <StatCard
+      <StatStrip>
+        <Stat label="Expedition" value={exp.code} hint={exp.name} icon={<CalendarRange className="size-4" />} />
+        <Stat
           label="Season window"
           value={`${daysLeft(exp.seasonStart, exp.seasonEnd)}`}
           unit="days left"
           hint={`Closes ${fmtDate(exp.seasonEnd)}`}
           icon={<CalendarRange className="size-4" />}
         />
-        <StatCard label="Legs" value={legs.length} unit="in plan" hint={`${legs.filter((l) => l.status === "in_transit").length} underway`} icon={<Ship className="size-4" />} />
-        <StatCard
+        <Stat label="Legs" value={legs.length} unit="in plan" hint={`${legs.filter((l) => l.status === "in_transit").length} underway`} icon={<Ship className="size-4" />} />
+        <Stat
           label="Cargo moved"
           value={Math.round(
             data.consignments.filter((c) => c.expeditionId === exp.id).reduce((a, b) => a + b.weightKg, 0) / 1000
@@ -60,7 +60,7 @@ export default function ExpeditionsPage() {
           hint={`${data.consignments.filter((c) => c.expeditionId === exp.id).length} consignments`}
           icon={<Package className="size-4" />}
         />
-      </div>
+      </StatStrip>
 
       <Tabs value={activeExp} onValueChange={(v) => setActiveExp(v as string)}>
         <TabsList>

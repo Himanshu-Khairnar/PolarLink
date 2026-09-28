@@ -35,7 +35,34 @@ export function SectionCard({
   );
 }
 
-export function StatCard({
+const STAT_TONE = {
+  default: "text-muted-foreground",
+  critical: "text-red-500",
+  watch: "text-amber-500",
+  ok: "text-emerald-500",
+} as const;
+
+/**
+ * A single unified panel that lays out a row of <Stat> cells separated by
+ * hairline dividers. Use this for every KPI row so the whole app reads the same.
+ */
+export function StatStrip({
+  children,
+  className,
+  cols = "grid-cols-2 lg:grid-cols-4",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  cols?: string;
+}) {
+  return (
+    <Card className={cn("[--card-spacing:0px]", className)}>
+      <div className={cn("grid gap-px bg-border", cols)}>{children}</div>
+    </Card>
+  );
+}
+
+export function Stat({
   label,
   value,
   unit,
@@ -52,38 +79,31 @@ export function StatCard({
   icon?: React.ReactNode;
   tone?: "default" | "critical" | "watch" | "ok";
 }) {
-  const toneRing = {
-    default: "ring-foreground/10",
-    critical: "ring-red-500/30",
-    watch: "ring-amber-500/30",
-    ok: "ring-emerald-500/30",
-  }[tone];
+  const accent = STAT_TONE[tone];
   return (
-    <Card className={cn("gap-0 py-4", toneRing)}>
-      <CardContent className="space-y-2">
-        <div className="flex items-center justify-between text-muted-foreground">
-          <span className="text-[11px] font-medium tracking-wide uppercase">{label}</span>
-          {icon}
-        </div>
-        <div className="flex items-baseline gap-1">
-          <span className="font-heading text-2xl leading-none font-semibold tabular-nums">{value}</span>
-          {unit ? <span className="text-xs text-muted-foreground">{unit}</span> : null}
-          {trend ? (
-            <span
-              className={cn(
-                "ml-1 text-[11px] font-medium",
-                trend.dir === "up" && "text-emerald-500",
-                trend.dir === "down" && "text-red-500",
-                trend.dir === "flat" && "text-muted-foreground"
-              )}
-            >
-              {trend.dir === "up" ? "▲" : trend.dir === "down" ? "▼" : "–"} {trend.value}
-            </span>
-          ) : null}
-        </div>
-        {hint ? <div className="text-xs text-muted-foreground">{hint}</div> : null}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col justify-between gap-2 bg-card px-4 py-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{label}</span>
+        {icon ? <span className={cn("shrink-0", accent)}>{icon}</span> : null}
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span className="font-heading text-2xl leading-none font-semibold tabular-nums">{value}</span>
+        {unit ? <span className="text-xs text-muted-foreground">{unit}</span> : null}
+        {trend ? (
+          <span
+            className={cn(
+              "ml-1 text-[11px] font-medium",
+              trend.dir === "up" && "text-emerald-500",
+              trend.dir === "down" && "text-red-500",
+              trend.dir === "flat" && "text-muted-foreground"
+            )}
+          >
+            {trend.dir === "up" ? "▲" : trend.dir === "down" ? "▼" : "–"} {trend.value}
+          </span>
+        ) : null}
+      </div>
+      {hint ? <div className="text-xs text-muted-foreground">{hint}</div> : null}
+    </div>
   );
 }
 
