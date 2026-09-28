@@ -70,6 +70,8 @@ export function Stat({
   trend,
   icon,
   tone = "default",
+  onClick,
+  active = false,
 }: {
   label: string;
   value: React.ReactNode;
@@ -78,10 +80,12 @@ export function Stat({
   trend?: { value: string; dir: "up" | "down" | "flat" };
   icon?: React.ReactNode;
   tone?: "default" | "critical" | "watch" | "ok";
+  onClick?: () => void;
+  active?: boolean;
 }) {
   const accent = STAT_TONE[tone];
-  return (
-    <div className="flex flex-col justify-between gap-2 bg-card px-4 py-3.5">
+  const content = (
+    <>
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{label}</span>
         {icon ? <span className={cn("shrink-0", accent)}>{icon}</span> : null}
@@ -103,8 +107,26 @@ export function Stat({
         ) : null}
       </div>
       {hint ? <div className="text-xs text-muted-foreground">{hint}</div> : null}
-    </div>
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-pressed={active}
+        className={cn(
+          "flex flex-col justify-between gap-2 bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none",
+          active && "bg-muted"
+        )}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className="flex flex-col justify-between gap-2 bg-card px-4 py-3.5">{content}</div>;
 }
 
 export function Pill({

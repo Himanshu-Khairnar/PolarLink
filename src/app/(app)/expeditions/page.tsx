@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { CalendarRange, Ship, Plane, Package, Users, ArrowRight } from "lucide-react";
+import { CalendarRange, Ship, Plane, Package, Users, ArrowRight, Plus } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { SectionCard, StatStrip, Stat, Pill, EmptyState } from "@/components/shared/kit";
 import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +19,15 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fmtDate, title } from "@/lib/format";
 import { cn } from "cn";
-import type { ID, Leg } from "@/lib/types";
+import type { Expedition, ID, Leg } from "@/lib/types";
+
+const EXP_TYPE_LABEL: Record<Expedition["type"], string> = {
+  antarctic: "Antarctic",
+  arctic: "Arctic",
+  southern_ocean: "Southern Ocean",
+};
+
+const LEG_MODES = ["Sea liner", "Ice-class ship", "IL-76 (DROMLAN)", "Basler BT-67", "Twin Otter", "Road / container", "Helicopter"];
 
 const LEG_STATUS_TONE: Record<string, string> = {
   planned: "bg-muted-foreground/50",
@@ -62,19 +72,23 @@ export default function ExpeditionsPage() {
         />
       </StatStrip>
 
-      <Tabs value={activeExp} onValueChange={(v) => setActiveExp(v as string)}>
-        <TabsList>
-          {data.expeditions.map((e) => (
-            <TabsTrigger key={e.id} value={e.id}>
-              {e.code}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Tabs value={activeExp} onValueChange={(v) => setActiveExp(v as string)}>
+          <TabsList>
+            {data.expeditions.map((e) => (
+              <TabsTrigger key={e.id} value={e.id}>
+                {e.code}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <NewExpeditionDialog onCreated={(id) => setActiveExp(id)} />
+      </div>
 
       <SectionCard
         title="Season timeline"
         description={`${exp.code} · ${fmtDate(exp.seasonStart)} → ${fmtDate(exp.seasonEnd)}`}
+        action={<AddLegDialog expeditionId={exp.id} />}
       >
         <Gantt legs={legs} today={today} />
       </SectionCard>
@@ -217,5 +231,167 @@ function LegCard({ leg }: { leg: Leg }) {
         </span>
       </div>
     </SectionCard>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: [string, string][];
+}) {
+  return (
+    <div>
+      <Label className="text-[10px] text-muted-foreground uppercase">{label}</Label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 h-8 w-full rounded-md border border-input bg-transparent px-2 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[&>option]:bg-popover"
+      >
+        {options.map(([v, l]) => (
+          <option key={v} value={v}>
+            {l}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function NewExpeditionDialog({ onCreated }: { onCreated: (id: ID) => void }) {
+  const { createExpedition } = useStore();
+  const [open, setOpen] = React.useState(false);
+  const [code, setCode] = React.useState("");
+  const [name, setName] = React.useState("");
+  const [type, setType] = React.useState<Expedition["type"]>("antarctic");
+  const [start, setStart] = React.useState("");
+  const [end, setEnd] = React.useState("");
+
+  const valid = code.trim() !== "" && name.trim() !== "" && start !== "" && end !== "" && Date.parse(end) >= Date.parse(start);
+
+  const submit = () => {
+    if (!valid) return;
+    const exp = createExpedition({ code: code.trim(), name: name.trim(), type, seasonStart: start, seasonEnd: end });
+    onCreated(exp.id);
+    setOpen(false);
+    setCode("");
+    setName("");
+    setType("antarctic");
+    setStart("");
+    setEnd("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button size="sm" className="gap-1.5" />}>
+        <Plus /> New expedition
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create expedition</DialogTitle>
+          <DialogDescription>Opens a new season plan. Add legs and manifests next.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">Code</Label>
+              <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="47-ISEA" className="mt-1 h-8 text-xs" />
+            </div>
+            <SelectField
+              label="Type"
+              value={type}
+              onChange={(v) => setType(v as Expedition["type"])}
+              options={(Object.keys(EXP_TYPE_LABEL) as Expedition["type"][]).map((t) => [t, EXP_TYPE_LABEL[t]])}
+            />
+          </div>
+          <div>
+            <Label className="text-[10px] text-muted-foreground uppercase">Name</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="47th Indian Scientific Expedition to Antarctica"
+              className="mt-1 h-8 text-xs"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">Season start</Label>
+              <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="mt-1 h-8 text-xs" />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">Season end</Label>
+              <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="mt-1 h-8 text-xs" />
+            </div>
+          </div>
+          <Button className="w-full" disabled={!valid} onClick={submit}>
+            Create expedition
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddLegDialog({ expeditionId }: { expeditionId: ID }) {
+  const { data, addLeg } = useStore();
+  const [open, setOpen] = React.useState(false);
+  const stations = data.stations;
+  const [from, setFrom] = React.useState(stations[0]?.id ?? "");
+  const [to, setTo] = React.useState(stations[1]?.id ?? "");
+  const [assetId, setAssetId] = React.useState(data.assets[0]?.id ?? "");
+  const [mode, setMode] = React.useState(LEG_MODES[0]);
+  const [depart, setDepart] = React.useState("");
+  const [arrive, setArrive] = React.useState("");
+
+  const valid = from !== "" && to !== "" && from !== to && assetId !== "" && depart !== "" && arrive !== "" && Date.parse(arrive) >= Date.parse(depart);
+
+  const submit = () => {
+    if (!valid) return;
+    addLeg({ expeditionId, fromStationId: from, toStationId: to, assetId, mode, plannedDepart: depart, plannedArrive: arrive });
+    setOpen(false);
+    setDepart("");
+    setArrive("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button variant="outline" size="sm" className="gap-1.5" />}>
+        <Plus /> Add leg
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add leg</DialogTitle>
+          <DialogDescription>Schedule one transport leg onto this expedition.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <SelectField label="From" value={from} onChange={setFrom} options={stations.map((s) => [s.id, s.shortName])} />
+            <SelectField label="To" value={to} onChange={setTo} options={stations.map((s) => [s.id, s.shortName])} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <SelectField label="Asset" value={assetId} onChange={setAssetId} options={data.assets.map((a) => [a.id, a.name])} />
+            <SelectField label="Mode" value={mode} onChange={setMode} options={LEG_MODES.map((m) => [m, m])} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">Planned depart</Label>
+              <Input type="date" value={depart} onChange={(e) => setDepart(e.target.value)} className="mt-1 h-8 text-xs" />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">Planned arrive</Label>
+              <Input type="date" value={arrive} onChange={(e) => setArrive(e.target.value)} className="mt-1 h-8 text-xs" />
+            </div>
+          </div>
+          <Button className="w-full" disabled={!valid} onClick={submit}>
+            Add leg
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

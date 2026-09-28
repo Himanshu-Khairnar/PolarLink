@@ -29,21 +29,35 @@ const CONDITION_TONE: Record<Asset["condition"], string> = {
 export default function AssetsPage() {
   const { data, stationById, today } = useStore();
   const [selected, setSelected] = React.useState<Asset | null>(null);
+  const [filter, setFilter] = React.useState<"all" | "attention" | "due">("all");
 
+  const attention = data.groundAssets.filter((a) => a.condition === "down" || a.condition === "needs_attention");
   const dueSoon = data.groundAssets.filter((a) => Date.parse(a.nextMaintenance) - today.getTime() < 7 * 86400000);
-  const down = data.groundAssets.filter((a) => a.condition === "down" || a.condition === "needs_attention");
+  const visible = filter === "attention" ? attention : filter === "due" ? dueSoon : data.groundAssets;
 
   return (
     <div className="space-y-4">
       <StatStrip>
-        <Stat label="Tracked assets" value={data.groundAssets.length} icon={<Wrench className="size-4" />} hint="Across 3 stations" />
-        <Stat label="Needs attention" value={down.length} tone={down.length ? "watch" : "ok"} icon={<Gauge className="size-4" />} hint={down.map((d) => d.name).slice(0, 2).join(", ") || "All healthy"} />
-        <Stat label="Service due ≤ 7d" value={dueSoon.length} tone={dueSoon.length ? "watch" : "ok"} icon={<CalendarClock className="size-4" />} hint={dueSoon.map((d) => d.tag).slice(0, 2).join(", ") || "None"} />
-        <Stat label="Service logs" value={data.maintenance.length} tone="ok" icon={<Wrench className="size-4" />} hint="Audit-ready" />
+        <Stat label="Tracked assets" value={data.groundAssets.length} icon={<Wrench className="size-4" />} hint="Across 3 stations" onClick={() => setFilter("all")} active={filter === "all"} />
+        <Stat label="Needs attention" value={attention.length} tone={attention.length ? "watch" : "ok"} icon={<Gauge className="size-4" />} hint={attention.map((d) => d.name).slice(0, 2).join(", ") || "All healthy"} onClick={() => setFilter((f) => (f === "attention" ? "all" : "attention"))} active={filter === "attention"} />
+        <Stat label="Service due ≤ 7d" value={dueSoon.length} tone={dueSoon.length ? "watch" : "ok"} icon={<CalendarClock className="size-4" />} hint={dueSoon.map((d) => d.tag).slice(0, 2).join(", ") || "None"} onClick={() => setFilter((f) => (f === "due" ? "all" : "due"))} active={filter === "due"} />
+        <Stat label="Service logs" value={data.maintenance.length} tone="ok" icon={<Wrench className="size-4" />} hint="Audit-ready" onClick={() => document.getElementById("maintenance-history")?.scrollIntoView({ behavior: "smooth", block: "start" })} />
       </StatStrip>
 
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          Showing <span className="font-medium text-foreground">{visible.length}</span> of {data.groundAssets.length} assets
+          {filter !== "all" ? <span> · {filter === "attention" ? "needs attention" : "service due ≤ 7d"}</span> : null}
+        </p>
+        {filter !== "all" ? (
+          <Button variant="ghost" size="xs" onClick={() => setFilter("all")}>
+            Clear filter
+          </Button>
+        ) : null}
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {data.groundAssets.map((a) => {
+        {visible.map((a) => {
           const station = stationById.get(a.stationId);
           const daysToService = Math.round((Date.parse(a.nextMaintenance) - today.getTime()) / 86400000);
           const overdue = daysToService < 0;
@@ -76,6 +90,7 @@ export default function AssetsPage() {
         })}
       </div>
 
+      <div id="maintenance-history" className="scroll-mt-20">
       <SectionCard title="Maintenance history" description="Every intervention is logged against the asset" contentClassName="px-0">
         <Table>
           <TableHeader>
@@ -103,6 +118,7 @@ export default function AssetsPage() {
           </TableBody>
         </Table>
       </SectionCard>
+      </div>
 
       <LogServiceDialog asset={selected} onClose={() => setSelected(null)} />
     </div>

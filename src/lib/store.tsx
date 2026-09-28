@@ -15,9 +15,11 @@ import type {
   AutonomyRow,
   ConsignmentStatus,
   CustodyEvent,
+  Expedition,
   ID,
   Incident,
   InventoryTxn,
+  Leg,
   Role,
   SimulationResult,
   Station,
@@ -25,6 +27,15 @@ import type {
   SyncPriority,
   WasteEntry,
 } from "@/lib/types";
+
+export interface CreateExpeditionInput {
+  code: string;
+  name: string;
+  type: Expedition["type"];
+  seasonStart: string;
+  seasonEnd: string;
+  status?: Expedition["status"];
+}
 
 export type LinkMode = "online" | "throttled" | "offline";
 
@@ -70,6 +81,8 @@ export interface StoreValue {
   pushSync: (priority: SyncPriority, entity: string, op: SyncEvent["op"], payload: string) => void;
   drainSync: (budgetBytes: number) => void;
   resetDemo: () => void;
+  createExpedition: (input: CreateExpeditionInput) => Expedition;
+  addLeg: (input: { expeditionId: ID; fromStationId: ID; toStationId: ID; assetId: ID; mode: string; plannedDepart: string; plannedArrive: string }) => Leg;
 }
 
 const StoreContext = React.createContext<StoreValue | null>(null);
@@ -448,6 +461,77 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     toast.message("Demo data reset", { description: "Synthetic NCPOR seed regenerated." });
   }, []);
 
+  const createExpedition = React.useCallback<StoreValue["createExpedition"]>((input) => {
+    const id = `ex-${Date.now()}`;
+    const expedition: Expedition = {
+      id,
+      code: input.code,
+      name: input.name,
+      type: input.type,
+      seasonStart: input.seasonStart,
+      seasonEnd: input.seasonEnd,
+      status: input.status ?? "planning",
+    };
+    setData((prev) => {
+      const syncEvent: SyncEvent = {
+        id: `sy-exp-${Date.now()}`,
+        eventUuid: digest(`${id}-${input.code}`).slice(0, 12),
+        originNode: "hq-node",
+        entity: "expedition",
+        op: "create",
+        payload: `${input.code}:${input.type}`,
+        lamportTs: prev.syncLog.length + 12000,
+        priority: "P1",
+        bytes: 220,
+        appliedAt: link === "offline" ? undefined : new Date().toISOString(),
+      };
+      return {
+        ...prev,
+        expeditions: [...prev.expeditions, expedition],
+        syncLog: [syncEvent, ...prev.syncLog].slice(0, 60),
+      };
+    });
+    toast.success("Expedition created", { description: `${input.code} · ${input.name}` });
+    return expedition;
+  }, [link]);
+
+  const addLeg = React.useCallback<StoreValue["addLeg"]>((input) => {
+    const id = `lg-${Date.now()}`;
+    const leg: Leg = {
+      id,
+      expeditionId: input.expeditionId,
+      fromStationId: input.fromStationId,
+      toStationId: input.toStationId,
+      assetId: input.assetId,
+      mode: input.mode,
+      plannedDepart: input.plannedDepart,
+      plannedArrive: input.plannedArrive,
+      seasonOnly: true,
+      status: "planned",
+    };
+    setData((prev) => {
+      const syncEvent: SyncEvent = {
+        id: `sy-leg-${Date.now()}`,
+        eventUuid: digest(`${id}-leg`).slice(0, 12),
+        originNode: "hq-node",
+        entity: "leg",
+        op: "create",
+        payload: input.mode,
+        lamportTs: prev.syncLog.length + 13000,
+        priority: "P1",
+        bytes: 160,
+        appliedAt: link === "offline" ? undefined : new Date().toISOString(),
+      };
+      return {
+        ...prev,
+        legs: [...prev.legs, leg],
+        syncLog: [syncEvent, ...prev.syncLog].slice(0, 60),
+      };
+    });
+    toast.success("Leg added", { description: `${input.mode} leg scheduled` });
+    return leg;
+  }, [link]);
+
   const value: StoreValue = {
     data,
     stationById,
@@ -478,6 +562,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     pushSync,
     drainSync,
     resetDemo,
+    createExpedition,
+    addLeg,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
