@@ -4,27 +4,42 @@ import * as React from "react";
 import { Boxes, CalendarClock, FlaskConical, TrendingDown } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { consumptionSeries } from "@/lib/data/seed";
-import { SectionCard, StatStrip, Stat, Pill, RiskBadge, Bar } from "@/components/shared/kit";
-import { Field } from "@/components/shared/field";
-import { ForecastChart } from "@/components/shared/charts";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  SectionCard,
+  StatStrip,
+  Stat,
+  Pill,
+  RiskBadge,
+  Bar,
+} from "@/app/components/shared/kit";
+import { Field } from "@/app/components/shared/field";
+import { ForecastChart } from "@/app/components/shared/charts";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+} from "@/app/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/ui/table";
 import { fmtNum } from "@/lib/format";
 import { cn } from "cn";
 import type { AutonomyRow, ID } from "@/lib/types";
 
 export default function InventoryPage() {
-  const { data, autonomy, nextResupplyDays, addInventoryTxn, stationById } = useStore();
+  const { data, autonomy, nextResupplyDays, addInventoryTxn, stationById } =
+    useStore();
   const stations = data.stations.filter((s) => s.type === "station");
   const [stationId, setStationId] = React.useState<ID>(stations[0]?.id ?? "");
   const [selected, setSelected] = React.useState<AutonomyRow | null>(null);
@@ -54,13 +69,44 @@ export default function InventoryPage() {
           label="Lowest autonomy"
           value={minRow ? minRow.daysLeft : "—"}
           unit="days"
-          tone={minRow?.risk === "CRITICAL" ? "critical" : minRow?.risk === "WATCH" ? "watch" : "ok"}
+          tone={
+            minRow?.risk === "CRITICAL"
+              ? "critical"
+              : minRow?.risk === "WATCH"
+                ? "watch"
+                : "ok"
+          }
           hint={minRow ? minRow.name : "No data"}
           icon={<TrendingDown className="size-4" />}
         />
-        <Stat label="Critical lines" value={critical.length} unit="items" tone={critical.length ? "critical" : "ok"} hint={critical.map((c) => c.name).slice(0, 2).join(", ") || "None"} icon={<Boxes className="size-4" />} />
-        <Stat label="Watch lines" value={watch.length} unit="items" tone={watch.length ? "watch" : "ok"} hint="Within 25% of resupply gap" icon={<FlaskConical className="size-4" />} />
-        <Stat label="Next resupply" value={resupply} unit="days" hint={station?.shortName} icon={<CalendarClock className="size-4" />} />
+        <Stat
+          label="Critical lines"
+          value={critical.length}
+          unit="items"
+          tone={critical.length ? "critical" : "ok"}
+          hint={
+            critical
+              .map((c) => c.name)
+              .slice(0, 2)
+              .join(", ") || "None"
+          }
+          icon={<Boxes className="size-4" />}
+        />
+        <Stat
+          label="Watch lines"
+          value={watch.length}
+          unit="items"
+          tone={watch.length ? "watch" : "ok"}
+          hint="Within 25% of resupply gap"
+          icon={<FlaskConical className="size-4" />}
+        />
+        <Stat
+          label="Next resupply"
+          value={resupply}
+          unit="days"
+          hint={station?.shortName}
+          icon={<CalendarClock className="size-4" />}
+        />
       </StatStrip>
 
       <SectionCard
@@ -82,27 +128,42 @@ export default function InventoryPage() {
           </TableHeader>
           <TableBody>
             {rows.map((r) => {
-              const pct = Math.min(100, (r.daysLeft / Math.max(r.nextResupplyDays, 1)) * 100);
+              const pct = Math.min(
+                100,
+                (r.daysLeft / Math.max(r.nextResupplyDays, 1)) * 100,
+              );
               return (
                 <TableRow key={r.itemId}>
                   <TableCell>
                     <span className="flex items-center gap-2 font-medium">
                       {r.name}
-                      {r.critical ? <Pill className="border-red-500/30 bg-red-500/10 text-red-500">critical</Pill> : null}
+                      {r.critical ? (
+                        <Pill className="border-foreground/30 bg-foreground/10 text-foreground">
+                          critical
+                        </Pill>
+                      ) : null}
                     </span>
                   </TableCell>
-                  <TableCell className="capitalize text-muted-foreground">{r.category}</TableCell>
+                  <TableCell className="capitalize text-muted-foreground">
+                    {r.category}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {fmtNum(r.stock, r.stock < 100 ? 1 : 0)} {r.unit}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">{fmtNum(r.dailyUse, 2)}</TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {fmtNum(r.dailyUse, 2)}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Bar
                         value={pct}
                         max={100}
                         barClassName={cn(
-                          r.risk === "CRITICAL" ? "bg-red-500" : r.risk === "WATCH" ? "bg-amber-500" : "bg-emerald-500"
+                          r.risk === "CRITICAL"
+                            ? "bg-foreground"
+                            : r.risk === "WATCH"
+                              ? "bg-foreground/50"
+                              : "bg-foreground/25",
                         )}
                       />
                       <span className="w-24 shrink-0 text-right text-[11px] text-muted-foreground tabular-nums">
@@ -114,7 +175,11 @@ export default function InventoryPage() {
                     <RiskBadge risk={r.risk} />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="xs" onClick={() => setSelected(r)}>
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() => setSelected(r)}
+                    >
                       Forecast
                     </Button>
                   </TableCell>
@@ -146,7 +211,7 @@ function useForecast(row: AutonomyRow | null, stationId: ID) {
             future: forecast(stationId, row.itemId, 90),
           }
         : { history: [], future: [] },
-    [row, stationId, forecast]
+    [row, stationId, forecast],
   );
 }
 
@@ -164,12 +229,20 @@ function ItemDialog({
   forecast: { history: number[]; future: { day: number; value: number }[] };
 }) {
   const [qty, setQty] = React.useState("10");
-  const [reason, setReason] = React.useState<"consumed" | "received" | "wastage" | "count_adj">("consumed");
+  const [reason, setReason] = React.useState<
+    "consumed" | "received" | "wastage" | "count_adj"
+  >("consumed");
 
   if (!row) return null;
   const amount = Number(qty) || 0;
-  const delta = reason === "received" ? amount : reason === "count_adj" ? amount : -Math.abs(amount);
-  const projected = row.dailyUse > 0 ? Math.floor((row.stock + delta) / row.dailyUse) : 0;
+  const delta =
+    reason === "received"
+      ? amount
+      : reason === "count_adj"
+        ? amount
+        : -Math.abs(amount);
+  const projected =
+    row.dailyUse > 0 ? Math.floor((row.stock + delta) / row.dailyUse) : 0;
 
   return (
     <Dialog open={Boolean(row)} onOpenChange={(o) => !o && onClose()}>
@@ -179,34 +252,75 @@ function ItemDialog({
             {row.name} <RiskBadge risk={row.risk} />
           </DialogTitle>
           <DialogDescription>
-            {forecast.history.length} days of history with a 90-day Holt-Winters forecast
+            {forecast.history.length} days of history with a 90-day Holt-Winters
+            forecast
           </DialogDescription>
         </DialogHeader>
 
         <div className="text-foreground">
-          <ForecastChart history={forecast.history} forecast={forecast.future} threshold={row.dailyUse * 30} />
+          <ForecastChart
+            history={forecast.history}
+            forecast={forecast.future}
+            threshold={row.dailyUse * 30}
+          />
           <div className="mt-1 flex items-center gap-4 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1"><i className="h-0.5 w-4 bg-foreground" /> Actual</span>
-            <span className="flex items-center gap-1"><i className="h-0.5 w-4 border-t border-dashed border-foreground/60" /> Forecast</span>
-            <span className="flex items-center gap-1"><i className="h-0.5 w-4 bg-red-500/60" /> 30-day safety line</span>
+            <span className="flex items-center gap-1">
+              <i className="h-0.5 w-4 bg-foreground" /> Actual
+            </span>
+            <span className="flex items-center gap-1">
+              <i className="h-0.5 w-4 border-t border-dashed border-foreground/60" />{" "}
+              Forecast
+            </span>
+            <span className="flex items-center gap-1">
+              <i className="h-0.5 w-4 bg-foreground/40" /> 30-day safety line
+            </span>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-center">
-          <Field className="px-2 py-2" labelClassName="text-[10px]" valueClassName="text-sm" label="Current cover" value={`${row.daysLeft} d`} />
-          <Field className="px-2 py-2" labelClassName="text-[10px]" valueClassName="text-sm" label="Daily use" value={`${fmtNum(row.dailyUse, 2)} ${row.unit}`} />
-          <Field className="px-2 py-2" labelClassName="text-[10px]" valueClassName="text-sm" label="Resupply gap" value={`${row.nextResupplyDays} d`} />
+          <Field
+            className="px-2 py-2"
+            labelClassName="text-[10px]"
+            valueClassName="text-sm"
+            label="Current cover"
+            value={`${row.daysLeft} d`}
+          />
+          <Field
+            className="px-2 py-2"
+            labelClassName="text-[10px]"
+            valueClassName="text-sm"
+            label="Daily use"
+            value={`${fmtNum(row.dailyUse, 2)} ${row.unit}`}
+          />
+          <Field
+            className="px-2 py-2"
+            labelClassName="text-[10px]"
+            valueClassName="text-sm"
+            label="Resupply gap"
+            value={`${row.nextResupplyDays} d`}
+          />
         </div>
 
         <div className="rounded-lg border p-3">
-          <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Log a stock transaction</p>
+          <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Log a stock transaction
+          </p>
           <div className="flex flex-wrap items-end gap-2">
             <div className="w-28">
-              <Label className="text-[10px] text-muted-foreground uppercase">Qty ({row.unit})</Label>
-              <Input value={qty} onChange={(e) => setQty(e.target.value)} type="number" className="mt-1 h-8 text-xs" />
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Qty ({row.unit})
+              </Label>
+              <Input
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+                type="number"
+                className="mt-1 h-8 text-xs"
+              />
             </div>
             <div className="w-40">
-              <Label className="text-[10px] text-muted-foreground uppercase">Reason</Label>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Reason
+              </Label>
               <select
                 value={reason}
                 onChange={(e) => setReason(e.target.value as typeof reason)}
@@ -221,7 +335,13 @@ function ItemDialog({
             <Button
               size="sm"
               onClick={() => {
-                addTxn({ stationId, itemId: row.itemId, delta, reason, actor: "Store keeper" });
+                addTxn({
+                  stationId,
+                  itemId: row.itemId,
+                  delta,
+                  reason,
+                  actor: "Store keeper",
+                });
                 onClose();
               }}
             >
@@ -230,7 +350,18 @@ function ItemDialog({
             </Button>
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            New projected cover ≈ <span className={cn("font-medium", projected < row.nextResupplyDays ? "text-red-500" : "text-emerald-500")}>{projected} days</span>. Deltas merge commutatively during offline sync.
+            New projected cover ≈{" "}
+            <span
+              className={cn(
+                "font-medium",
+                projected < row.nextResupplyDays
+                  ? "text-foreground"
+                  : "text-muted-foreground",
+              )}
+            >
+              {projected} days
+            </span>
+            . Deltas merge commutatively during offline sync.
           </p>
         </div>
       </DialogContent>

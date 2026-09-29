@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { ROUTES } from "@/components/shell/nav";
+import { ROUTES } from "@/app/components/shell/nav";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 

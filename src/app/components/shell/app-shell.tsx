@@ -1,14 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { Sidebar, NavList } from "@/components/shell/sidebar";
-import { Topbar } from "@/components/shell/topbar";
+import { Sheet, SheetContent, SheetTitle } from "@/app/components/ui/sheet";
+import { Sidebar, NavList } from "@/app/components/shell/sidebar";
+import { Topbar } from "@/app/components/shell/topbar";
+import { Copilot } from "@/app/components/shared/copilot";
 import { useStore } from "@/lib/store";
 import { Snowflake } from "lucide-react";
 
 const SIDEBAR_KEY = "polarlink:sidebar";
-let sidebarStore = typeof window !== "undefined" && window.localStorage.getItem(SIDEBAR_KEY) === "closed" ? false : true;
+let sidebarStore =
+  typeof window !== "undefined" &&
+  window.localStorage.getItem(SIDEBAR_KEY) === "closed"
+    ? false
+    : true;
 const sidebarListeners = new Set<() => void>();
 
 function subscribeSidebar(listener: () => void) {
@@ -31,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const sidebarOpen = React.useSyncExternalStore(
     subscribeSidebar,
     () => sidebarStore,
-    () => true
+    () => true,
   );
   const { glare } = useStore();
 
@@ -65,6 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         />
         <main className="flex-1 px-3 py-4 sm:px-5 sm:py-6">{children}</main>
       </div>
+      <Copilot />
     </div>
   );
 }

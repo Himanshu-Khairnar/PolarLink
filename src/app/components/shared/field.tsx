@@ -4,8 +4,8 @@ import { cn } from "cn";
 const TONE_TEXT = {
   default: "",
   ok: "",
-  watch: "text-amber-500",
-  critical: "text-red-500",
+  watch: "text-foreground/70",
+  critical: "text-foreground",
 } as const;
 
 export function Field({

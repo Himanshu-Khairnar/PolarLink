@@ -272,7 +272,12 @@ export function rankEvacRoutes(
     }
   };
   dfs(from, [from], 0, 0);
-  return routes.sort((a, b) => a.score - b.score).slice(0, 5);
+  const best = new Map<string, EvacRoute>();
+  for (const r of routes) {
+    const prev = best.get(r.id);
+    if (!prev || r.score < prev.score) best.set(r.id, r);
+  }
+  return [...best.values()].sort((a, b) => a.score - b.score).slice(0, 5);
 }
 
 /* ------------------------------------------------------------------ */

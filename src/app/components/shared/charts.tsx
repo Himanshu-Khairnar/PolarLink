@@ -44,7 +44,7 @@ export function ForecastChart({
           x2={width}
           y1={y(threshold)}
           y2={y(threshold)}
-          className="stroke-red-500/60"
+          className="stroke-foreground/50"
           strokeWidth={1}
           strokeDasharray="5 4"
         />

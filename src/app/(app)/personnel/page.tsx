@@ -3,39 +3,53 @@
 import * as React from "react";
 import { BadgeCheck, HeartPulse, ShieldAlert, Users } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { SectionCard, StatStrip, Stat, Pill } from "@/components/shared/kit";
-import { StationSelect } from "@/components/shared/station-select";
-import { Field } from "@/components/shared/field";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
+import {
+  SectionCard,
+  StatStrip,
+  Stat,
+  Pill,
+} from "@/app/components/shared/kit";
+import { StationSelect } from "@/app/components/shared/station-select";
+import { Field } from "@/app/components/shared/field";
+import { Button } from "@/app/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import { Input } from "@/app/components/ui/input";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+} from "@/app/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/ui/table";
 import { title } from "@/lib/format";
 import { cn } from "cn";
 import type { ID, Personnel } from "@/lib/types";
 
 const STATE_TONE: Record<Personnel["state"], string> = {
   NOMINATED: "bg-muted text-muted-foreground border-border",
-  MEDICALLY_CLEARED: "bg-sky-500/15 text-sky-500 border-sky-500/30",
-  TRAINED: "bg-sky-500/15 text-sky-500 border-sky-500/30",
-  REPORTED_GOA: "bg-amber-500/15 text-amber-500 border-amber-500/30",
-  IN_TRANSIT: "bg-violet-500/15 text-violet-500 border-violet-500/30",
-  AT_STATION: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
+  MEDICALLY_CLEARED: "bg-muted text-muted-foreground border-border",
+  TRAINED: "bg-foreground/5 text-foreground/70 border-foreground/15",
+  REPORTED_GOA: "bg-foreground/10 text-foreground/80 border-foreground/20",
+  IN_TRANSIT: "bg-foreground/15 text-foreground border-foreground/25",
+  AT_STATION: "bg-foreground text-background border-foreground",
   DE_INDUCTED: "bg-muted text-muted-foreground border-border",
-  EVACUATED: "bg-red-500/15 text-red-500 border-red-500/30",
+  EVACUATED: "bg-transparent text-foreground border-foreground",
 };
 
 export default function PersonnelPage() {
   const { data, stationById } = useStore();
   const stations = data.stations.filter((s) => s.type === "station");
-  const [filter, setFilter] = React.useState<"all" | "winter" | "summer" | ID>("all");
+  const [filter, setFilter] = React.useState<"all" | "winter" | "summer" | ID>(
+    "all",
+  );
   const [selected, setSelected] = React.useState<Personnel | null>(null);
 
   const list = data.personnel.filter((p) => {
@@ -49,22 +63,48 @@ export default function PersonnelPage() {
   return (
     <div className="space-y-4">
       <StatStrip>
-        <Stat label="Personnel" value={data.personnel.length} unit="on roster" icon={<Users className="size-4" />} hint={`${data.personnel.filter((p) => p.team === "winter").length} winter-over`} />
-        <Stat label="On station" value={onStation.length} icon={<BadgeCheck className="size-4" />} tone="ok" hint={`${onStation.filter((p) => p.stationId === "st-bharati").length} at Bharati`} />
-        <Stat label="In transit" value={data.personnel.filter((p) => p.state === "IN_TRANSIT").length} hint="Via Cape Town gateway" icon={<Users className="size-4" />} />
+        <Stat
+          label="Personnel"
+          value={data.personnel.length}
+          unit="on roster"
+          icon={<Users className="size-4" />}
+          hint={`${data.personnel.filter((p) => p.team === "winter").length} winter-over`}
+        />
+        <Stat
+          label="On station"
+          value={onStation.length}
+          icon={<BadgeCheck className="size-4" />}
+          tone="ok"
+          hint={`${onStation.filter((p) => p.stationId === "st-bharati").length} at Bharati`}
+        />
+        <Stat
+          label="In transit"
+          value={data.personnel.filter((p) => p.state === "IN_TRANSIT").length}
+          hint="Via Cape Town gateway"
+          icon={<Users className="size-4" />}
+        />
         <Stat
           label="Medical flags"
           value={data.personnel.filter((p) => !p.medicalClearance).length}
-          tone={data.personnel.some((p) => !p.medicalClearance) ? "watch" : "ok"}
+          tone={
+            data.personnel.some((p) => !p.medicalClearance) ? "watch" : "ok"
+          }
           hint="Clearance pending"
           icon={<HeartPulse className="size-4" />}
         />
       </StatStrip>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <SectionCard title="Roster" description="Nomination → medical → training → travel → station → de-induction" contentClassName="px-0">
+        <SectionCard
+          title="Roster"
+          description="Nomination → medical → training → travel → station → de-induction"
+          contentClassName="px-0"
+        >
           <div className="px-4 pb-3">
-            <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+            <Tabs
+              value={filter}
+              onValueChange={(v) => setFilter(v as typeof filter)}
+            >
               <TabsList className="flex-wrap">
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="summer">Summer</TabsTrigger>
@@ -90,28 +130,44 @@ export default function PersonnelPage() {
             </TableHeader>
             <TableBody>
               {list.map((p) => (
-                <TableRow key={p.id} className="cursor-pointer" onClick={() => setSelected(p)}>
+                <TableRow
+                  key={p.id}
+                  className="cursor-pointer"
+                  onClick={() => setSelected(p)}
+                >
                   <TableCell className="font-medium">
                     {p.name}
-                    <span className="ml-2 text-[10px] text-muted-foreground">{p.bloodGroup}</span>
+                    <span className="ml-2 text-[10px] text-muted-foreground">
+                      {p.bloodGroup}
+                    </span>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{p.role}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {p.role}
+                  </TableCell>
                   <TableCell>
-                    <Pill className={cn(p.team === "winter" ? "border-sky-500/30 bg-sky-500/10 text-sky-400" : "border-amber-500/30 bg-amber-500/10 text-amber-500")}>
+                    <Pill
+                      className={cn(
+                        p.team === "winter"
+                          ? "border-foreground/20 bg-foreground/10 text-foreground"
+                          : "border-border bg-muted text-muted-foreground",
+                      )}
+                    >
                       {p.team}
                     </Pill>
                   </TableCell>
                   <TableCell>
-                    <Pill className={STATE_TONE[p.state]}>{title(p.state)}</Pill>
+                    <Pill className={STATE_TONE[p.state]}>
+                      {title(p.state)}
+                    </Pill>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {stationById.get(p.stationId ?? "")?.shortName ?? "—"}
                   </TableCell>
                   <TableCell>
                     {p.medicalClearance ? (
-                      <BadgeCheck className="size-4 text-emerald-500" />
+                      <BadgeCheck className="size-4 text-muted-foreground" />
                     ) : (
-                      <ShieldAlert className="size-4 text-amber-500" />
+                      <ShieldAlert className="size-4 text-foreground" />
                     )}
                   </TableCell>
                 </TableRow>
@@ -123,7 +179,10 @@ export default function PersonnelPage() {
         <RollCall />
       </div>
 
-      <Dialog open={Boolean(selected)} onOpenChange={(o) => !o && setSelected(null)}>
+      <Dialog
+        open={Boolean(selected)}
+        onOpenChange={(o) => !o && setSelected(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{selected?.name}</DialogTitle>
@@ -133,16 +192,43 @@ export default function PersonnelPage() {
           </DialogHeader>
           {selected ? (
             <div className="space-y-3 text-sm">
-              <Field variant="row" label="State" value={title(selected.state)} />
-              <Field variant="row" label="Location" value={stationById.get(selected.stationId ?? "")?.name ?? "Not yet deployed"} />
-              <Field variant="row" label="Medical clearance" value={selected.medicalClearance ? "Cleared" : "Pending"} />
-              <Field variant="row" label="Blood group" value={selected.bloodGroup} />
-              <Field variant="row" label="Emergency contact" value={selected.emergencyContact} />
+              <Field
+                variant="row"
+                label="State"
+                value={title(selected.state)}
+              />
+              <Field
+                variant="row"
+                label="Location"
+                value={
+                  stationById.get(selected.stationId ?? "")?.name ??
+                  "Not yet deployed"
+                }
+              />
+              <Field
+                variant="row"
+                label="Medical clearance"
+                value={selected.medicalClearance ? "Cleared" : "Pending"}
+              />
+              <Field
+                variant="row"
+                label="Blood group"
+                value={selected.bloodGroup}
+              />
+              <Field
+                variant="row"
+                label="Emergency contact"
+                value={selected.emergencyContact}
+              />
               <div>
-                <p className="text-[10px] tracking-wide text-muted-foreground uppercase">Training</p>
+                <p className="text-[10px] tracking-wide text-muted-foreground uppercase">
+                  Training
+                </p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {selected.training.map((t) => (
-                    <Pill key={t} variant="muted">{t}</Pill>
+                    <Pill key={t} variant="muted">
+                      {t}
+                    </Pill>
                   ))}
                 </div>
               </div>
@@ -161,8 +247,12 @@ function RollCall() {
   const [present, setPresent] = React.useState<Set<ID>>(new Set());
   const [search, setSearch] = React.useState("");
 
-  const onStation = data.personnel.filter((p) => p.state === "AT_STATION" && p.stationId === stationId);
-  const shown = onStation.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+  const onStation = data.personnel.filter(
+    (p) => p.state === "AT_STATION" && p.stationId === stationId,
+  );
+  const shown = onStation.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase()),
+  );
   const unaccounted = onStation.filter((p) => !present.has(p.id));
 
   return (
@@ -189,11 +279,21 @@ function RollCall() {
         label="name"
         className="mb-3 w-full"
       />
-      <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter by name…" className="mb-3 h-8 text-xs" />
+      <Input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Filter by name…"
+        className="mb-3 h-8 text-xs"
+      />
 
       <div className="mb-3 flex items-center justify-between rounded-lg border px-3 py-2 text-xs">
         <span className="text-muted-foreground">Accounted</span>
-        <span className={cn("font-semibold tabular-nums", unaccounted.length ? "text-amber-500" : "text-emerald-500")}>
+        <span
+          className={cn(
+            "font-semibold tabular-nums",
+            unaccounted.length ? "text-foreground" : "text-muted-foreground",
+          )}
+        >
           {present.size} / {onStation.length}
         </span>
       </div>
@@ -214,12 +314,23 @@ function RollCall() {
               }
               className={cn(
                 "flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition-colors",
-                isPresent ? "border-emerald-500/30 bg-emerald-500/10" : "hover:bg-muted/50"
+                isPresent
+                  ? "border-foreground/30 bg-foreground/5"
+                  : "hover:bg-muted/50",
               )}
             >
-              <span className={cn("size-3.5 rounded-full border", isPresent ? "border-emerald-500 bg-emerald-500" : "border-muted-foreground")} />
+              <span
+                className={cn(
+                  "size-3.5 rounded-full border",
+                  isPresent
+                    ? "border-foreground bg-foreground"
+                    : "border-muted-foreground",
+                )}
+              />
               <span className="font-medium">{p.name}</span>
-              <span className="ml-auto text-[10px] text-muted-foreground">{p.role}</span>
+              <span className="ml-auto text-[10px] text-muted-foreground">
+                {p.role}
+              </span>
             </button>
           );
         })}
@@ -238,10 +349,19 @@ function RollCall() {
                 personId: unaccounted[0].id,
                 summary: `Muster incomplete: ${unaccounted.map((p) => p.name).join(", ")} unaccounted after roll-call.`,
               });
-              advanceIncident(inc.id, "MUSTER_COMPLETE", "Roll-call completed, search initiated.");
+              advanceIncident(
+                inc.id,
+                "MUSTER_COMPLETE",
+                "Roll-call completed, search initiated.",
+              );
             } else {
               const inc = data.incidents.find((i) => i.type === "medical");
-              if (inc) advanceIncident(inc.id, "MUSTER_COMPLETE", "All personnel accounted for at station.");
+              if (inc)
+                advanceIncident(
+                  inc.id,
+                  "MUSTER_COMPLETE",
+                  "All personnel accounted for at station.",
+                );
             }
           }}
         >
@@ -249,11 +369,14 @@ function RollCall() {
         </Button>
       </div>
       {unaccounted.length ? (
-        <p className="mt-2 text-[11px] text-amber-500">
-          {unaccounted.length} unaccounted — completing will raise a missing-person incident.
+        <p className="mt-2 text-[11px] text-foreground/70">
+          {unaccounted.length} unaccounted — completing will raise a
+          missing-person incident.
         </p>
       ) : (
-        <p className="mt-2 text-[11px] text-emerald-500">Everyone accounted for. Muster can be closed.</p>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Everyone accounted for. Muster can be closed.
+        </p>
       )}
     </SectionCard>
   );

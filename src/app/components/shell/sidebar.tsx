@@ -4,10 +4,10 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "cn";
-import { NAV } from "@/components/shell/nav";
+import { NAV } from "@/app/components/shell/nav";
 import { useStore } from "@/lib/store";
-import { LiveDot } from "@/components/shared/kit";
-import { Button } from "@/components/ui/button";
+import { LiveDot } from "@/app/components/shared/kit";
+import { Button } from "@/app/components/ui/button";
 import { pingBackend } from "@/lib/api";
 import { PanelLeftClose, ShieldCheck, Snowflake } from "lucide-react";
 
@@ -15,16 +15,24 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { data } = useStore();
   const criticalIncidents = data.incidents.filter(
-    (i) => (i.severity === "critical" || i.severity === "high") && i.status !== "RESOLVED" && i.status !== "REVIEWED"
+    (i) =>
+      (i.severity === "critical" || i.severity === "high") &&
+      i.status !== "RESOLVED" &&
+      i.status !== "REVIEWED",
   ).length;
 
-  const groups: ("Operations" | "Intelligence")[] = ["Operations", "Intelligence"];
+  const groups: ("Operations" | "Intelligence")[] = [
+    "Operations",
+    "Intelligence",
+  ];
 
   return (
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4 no-scrollbar">
       {groups.map((group) => (
         <div key={group} className="space-y-1">
-          <p className="px-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">{group}</p>
+          <p className="px-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
+            {group}
+          </p>
           {NAV.filter((n) => n.group === group).map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;
@@ -37,13 +45,20 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
                   "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
                   active
                     ? "bg-foreground text-background"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
                 <Icon className="size-4 shrink-0" />
                 <span className="leading-snug">{item.label}</span>
                 {item.href === "/emergency" && criticalIncidents > 0 ? (
-                  <span className={cn("ml-auto rounded-full px-1.5 text-[10px] font-semibold", active ? "bg-background/20 text-background" : "bg-red-500/15 text-red-500")}>
+                  <span
+                    className={cn(
+                      "ml-auto rounded-full px-1.5 text-[10px] font-semibold",
+                      active
+                        ? "bg-background/20 text-background"
+                        : "bg-foreground/15 text-foreground",
+                    )}
+                  >
                     {criticalIncidents}
                   </span>
                 ) : null}
@@ -56,9 +71,16 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function Sidebar({ open = true, onClose }: { open?: boolean; onClose?: () => void }) {
+export function Sidebar({
+  open = true,
+  onClose,
+}: {
+  open?: boolean;
+  onClose?: () => void;
+}) {
   const { link } = useStore();
-  const linkTone = link === "online" ? "emerald" : link === "throttled" ? "amber" : "red";
+  const linkTone =
+    link === "online" ? "emerald" : link === "throttled" ? "amber" : "red";
   const [apiOnline, setApiOnline] = React.useState<boolean | null>(null);
 
   React.useEffect(() => {
@@ -72,13 +94,20 @@ export function Sidebar({ open = true, onClose }: { open?: boolean; onClose?: ()
   }, []);
 
   return (
-    <aside className={cn("sticky top-0 h-svh shrink-0 flex-col border-r bg-sidebar", open ? "hidden w-64 lg:flex" : "hidden")}>
+    <aside
+      className={cn(
+        "sticky top-0 h-svh shrink-0 flex-col border-r bg-sidebar",
+        open ? "hidden w-64 lg:flex" : "hidden",
+      )}
+    >
       <div className="flex h-14 items-center gap-2.5 border-b px-4">
         <span className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
           <Snowflake className="size-4.5" />
         </span>
         <div className="leading-tight">
-          <p className="font-heading text-sm font-semibold tracking-tight">PolarLink</p>
+          <p className="font-heading text-sm font-semibold tracking-tight">
+            PolarLink
+          </p>
           <p className="text-[10px] text-muted-foreground">NCPOR · MoES</p>
         </div>
         <Button
@@ -104,7 +133,11 @@ export function Sidebar({ open = true, onClose }: { open?: boolean; onClose?: ()
           <span
             className={cn(
               "size-1.5 rounded-full",
-              apiOnline === null ? "bg-muted-foreground/50" : apiOnline ? "bg-emerald-500" : "bg-amber-500"
+              apiOnline === null
+                ? "bg-muted-foreground/50"
+                : apiOnline
+                  ? "bg-foreground"
+                  : "bg-foreground/40",
             )}
           />
           {apiOnline === null
@@ -114,7 +147,8 @@ export function Sidebar({ open = true, onClose }: { open?: boolean; onClose?: ()
               : "AI service offline · using local engine"}
         </div>
         <p className="mt-2 px-1 text-[10px] leading-relaxed text-muted-foreground/70">
-          Offline-first · event-log sync · hash-chained custody · synthetic 46-ISEA seed
+          Offline-first · event-log sync · hash-chained custody · synthetic
+          46-ISEA seed
         </p>
       </div>
     </aside>

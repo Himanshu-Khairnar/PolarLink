@@ -4,10 +4,10 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "cn";
 import { useStore, type LinkMode } from "@/lib/store";
-import { PAGES } from "@/components/shell/nav";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import { PAGES } from "@/app/components/shell/nav";
+import { Button } from "@/app/components/ui/button";
+import { Switch } from "@/app/components/ui/switch";
+import { Separator } from "@/app/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,8 +15,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
+} from "@/app/components/ui/dropdown-menu";
+import { Badge } from "@/app/components/ui/badge";
 import {
   Bell,
   ChevronDown,
@@ -28,7 +28,7 @@ import {
   Snowflake,
   UserCog,
 } from "lucide-react";
-import { RelativeTime } from "@/components/shared/relative-time";
+import { RelativeTime } from "@/app/components/shared/relative-time";
 import { ROLES, ROLE_ORDER } from "@/lib/roles";
 
 const LINK_OPTIONS: { value: LinkMode; label: string }[] = [
@@ -60,12 +60,16 @@ function Clock() {
   return (
     <div className="hidden items-center gap-3 rounded-lg border px-3 py-1.5 text-xs xl:flex">
       <div className="leading-tight">
-        <p className="text-[9px] tracking-wide text-muted-foreground uppercase">Goa</p>
+        <p className="text-[9px] tracking-wide text-muted-foreground uppercase">
+          Goa
+        </p>
         <p className="font-mono tabular-nums">{ist}</p>
       </div>
       <Separator orientation="vertical" className="h-6" />
       <div className="leading-tight">
-        <p className="text-[9px] tracking-wide text-muted-foreground uppercase">UTC</p>
+        <p className="text-[9px] tracking-wide text-muted-foreground uppercase">
+          UTC
+        </p>
         <p className="font-mono tabular-nums">{utc}</p>
       </div>
     </div>
@@ -83,7 +87,18 @@ export function Topbar({
 }) {
   const pathname = usePathname();
   const page = PAGES[pathname] ?? { title: "PolarLink", subtitle: "" };
-  const { data, stationById, role, setRole, scope, setScope, link, setLink, glare, setGlare } = useStore();
+  const {
+    data,
+    stationById,
+    role,
+    setRole,
+    scope,
+    setScope,
+    link,
+    setLink,
+    glare,
+    setGlare,
+  } = useStore();
 
   const alerts = data.alerts;
   const critical = alerts.filter((a) => a.severity === "critical").length;
@@ -91,7 +106,13 @@ export function Topbar({
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-3 backdrop-blur-xl sm:px-5">
-      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenu} aria-label="Open navigation">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="lg:hidden"
+        onClick={onMenu}
+        aria-label="Open navigation"
+      >
         <Menu />
       </Button>
 
@@ -106,8 +127,12 @@ export function Topbar({
       </Button>
 
       <div className="min-w-0 flex-1">
-        <h1 className="truncate font-heading text-sm font-semibold tracking-tight sm:text-base">{page.title}</h1>
-        <p className="hidden truncate text-xs text-muted-foreground sm:block">{page.subtitle}</p>
+        <h1 className="truncate font-heading text-sm font-semibold tracking-tight sm:text-base">
+          {page.title}
+        </h1>
+        <p className="hidden truncate text-xs text-muted-foreground sm:block">
+          {page.subtitle}
+        </p>
       </div>
 
       <Clock />
@@ -119,7 +144,9 @@ export function Topbar({
             onClick={() => setLink(o.value)}
             className={cn(
               "rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-              link === o.value ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+              link === o.value
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             {o.label}
@@ -130,7 +157,11 @@ export function Topbar({
       <div className="hidden items-center gap-2 rounded-lg border px-2.5 py-1.5 md:flex">
         <Snowflake className="size-3.5 text-muted-foreground" />
         <span className="text-[11px] text-muted-foreground">Glare</span>
-        <Switch size="sm" checked={glare} onCheckedChange={(v) => setGlare(Boolean(v))} />
+        <Switch
+          size="sm"
+          checked={glare}
+          onCheckedChange={(v) => setGlare(Boolean(v))}
+        />
       </div>
 
       <DropdownMenu>
@@ -140,7 +171,10 @@ export function Topbar({
               <Bell />
               <span className="hidden sm:inline">Alerts</span>
               {critical > 0 ? (
-                <Badge variant="destructive" className="ml-0.5 h-4 px-1 text-[10px]">
+                <Badge
+                  variant="outline"
+                  className="ml-0.5 h-4 border-transparent bg-foreground px-1 text-[10px] text-background"
+                >
                   {critical}
                 </Badge>
               ) : null}
@@ -151,12 +185,19 @@ export function Topbar({
           <DropdownMenuLabel>Active alerts</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {alerts.slice(0, 6).map((a) => (
-            <DropdownMenuItem key={a.id} className="flex flex-col items-start gap-0.5 py-2">
+            <DropdownMenuItem
+              key={a.id}
+              className="flex flex-col items-start gap-0.5 py-2"
+            >
               <div className="flex w-full items-center gap-2">
                 <span
                   className={cn(
                     "size-1.5 rounded-full",
-                    a.severity === "critical" ? "bg-red-500" : a.severity === "warning" ? "bg-amber-500" : "bg-sky-500"
+                    a.severity === "critical"
+                      ? "bg-foreground"
+                      : a.severity === "warning"
+                        ? "bg-foreground/50"
+                        : "bg-muted-foreground/50",
                   )}
                 />
                 <span className="text-xs font-medium">{a.title}</span>
@@ -164,7 +205,9 @@ export function Topbar({
                   <RelativeTime value={a.ts} />
                 </span>
               </div>
-              <span className="pl-3.5 text-[11px] text-muted-foreground">{a.detail}</span>
+              <span className="pl-3.5 text-[11px] text-muted-foreground">
+                {a.detail}
+              </span>
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -176,7 +219,9 @@ export function Topbar({
             <Button variant="outline" size="sm" className="gap-1.5">
               <Radio className="hidden sm:block" />
               <span className="hidden max-w-28 truncate sm:inline">
-                {scope === "all" ? "All stations" : stationById.get(scope)?.shortName}
+                {scope === "all"
+                  ? "All stations"
+                  : stationById.get(scope)?.shortName}
               </span>
               <ChevronDown />
             </Button>
@@ -185,7 +230,9 @@ export function Topbar({
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Station scope</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setScope("all")}>All stations</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setScope("all")}>
+            All stations
+          </DropdownMenuItem>
           {scopedStations.map((s) => (
             <DropdownMenuItem key={s.id} onClick={() => setScope(s.id)}>
               {s.name}
@@ -199,7 +246,9 @@ export function Topbar({
           render={
             <Button variant="outline" size="sm" className="gap-1.5">
               <UserCog />
-              <span className="hidden max-w-32 truncate lg:inline">{ROLES[role].label}</span>
+              <span className="hidden max-w-32 truncate lg:inline">
+                {ROLES[role].label}
+              </span>
               <ChevronDown />
             </Button>
           }
@@ -210,7 +259,11 @@ export function Topbar({
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           {ROLE_ORDER.map((r) => (
-            <DropdownMenuItem key={r} onClick={() => setRole(r)} className={cn(role === r && "bg-accent")}>
+            <DropdownMenuItem
+              key={r}
+              onClick={() => setRole(r)}
+              className={cn(role === r && "bg-accent")}
+            >
               {ROLES[r].label}
             </DropdownMenuItem>
           ))}

@@ -2,8 +2,15 @@
 
 import * as React from "react";
 import { cn } from "cn";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardAction,
+} from "@/app/components/ui/card";
+import { Badge } from "@/app/components/ui/badge";
 import { RISK_STYLES } from "@/lib/format";
 
 export function SectionCard({
@@ -26,7 +33,9 @@ export function SectionCard({
       <CardHeader>
         <div className="space-y-0.5">
           <CardTitle className="text-sm">{title}</CardTitle>
-          {description ? <CardDescription className="text-xs">{description}</CardDescription> : null}
+          {description ? (
+            <CardDescription className="text-xs">{description}</CardDescription>
+          ) : null}
         </div>
         {action ? <CardAction>{action}</CardAction> : null}
       </CardHeader>
@@ -37,9 +46,9 @@ export function SectionCard({
 
 const STAT_TONE = {
   default: "text-muted-foreground",
-  critical: "text-red-500",
-  watch: "text-amber-500",
-  ok: "text-emerald-500",
+  critical: "text-foreground",
+  watch: "text-foreground/55",
+  ok: "text-muted-foreground/70",
 } as const;
 
 /**
@@ -87,26 +96,35 @@ export function Stat({
   const content = (
     <>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{label}</span>
+        <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+          {label}
+        </span>
         {icon ? <span className={cn("shrink-0", accent)}>{icon}</span> : null}
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="font-heading text-2xl leading-none font-semibold tabular-nums">{value}</span>
-        {unit ? <span className="text-xs text-muted-foreground">{unit}</span> : null}
+        <span className="font-heading text-2xl leading-none font-semibold tabular-nums">
+          {value}
+        </span>
+        {unit ? (
+          <span className="text-xs text-muted-foreground">{unit}</span>
+        ) : null}
         {trend ? (
           <span
             className={cn(
               "ml-1 text-[11px] font-medium",
-              trend.dir === "up" && "text-emerald-500",
-              trend.dir === "down" && "text-red-500",
-              trend.dir === "flat" && "text-muted-foreground"
+              trend.dir === "up" && "text-foreground",
+              trend.dir === "down" && "text-muted-foreground",
+              trend.dir === "flat" && "text-muted-foreground/60",
             )}
           >
-            {trend.dir === "up" ? "▲" : trend.dir === "down" ? "▼" : "–"} {trend.value}
+            {trend.dir === "up" ? "▲" : trend.dir === "down" ? "▼" : "–"}{" "}
+            {trend.value}
           </span>
         ) : null}
       </div>
-      {hint ? <div className="text-xs text-muted-foreground">{hint}</div> : null}
+      {hint ? (
+        <div className="text-xs text-muted-foreground">{hint}</div>
+      ) : null}
     </>
   );
 
@@ -118,7 +136,7 @@ export function Stat({
         aria-pressed={active}
         className={cn(
           "flex flex-col justify-between gap-2 bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none",
-          active && "bg-muted"
+          active && "bg-muted",
         )}
       >
         {content}
@@ -126,7 +144,11 @@ export function Stat({
     );
   }
 
-  return <div className="flex flex-col justify-between gap-2 bg-card px-4 py-3.5">{content}</div>;
+  return (
+    <div className="flex flex-col justify-between gap-2 bg-card px-4 py-3.5">
+      {content}
+    </div>
+  );
 }
 
 export function Pill({
@@ -143,9 +165,11 @@ export function Pill({
       variant="outline"
       className={cn(
         "h-5 rounded-full px-2 text-[11px] font-medium",
-        variant === "muted" && "border-transparent bg-muted text-muted-foreground",
-        variant === "solid" && "border-transparent bg-foreground text-background",
-        className
+        variant === "muted" &&
+          "border-transparent bg-muted text-muted-foreground",
+        variant === "solid" &&
+          "border-transparent bg-foreground text-background",
+        className,
       )}
     >
       {children}
@@ -153,11 +177,21 @@ export function Pill({
   );
 }
 
-export function RiskBadge({ risk, className }: { risk: string; className?: string }) {
+export function RiskBadge({
+  risk,
+  className,
+}: {
+  risk: string;
+  className?: string;
+}) {
   return (
     <Badge
       variant="outline"
-      className={cn("h-5 rounded-full border px-2 text-[11px] font-semibold", RISK_STYLES[risk], className)}
+      className={cn(
+        "h-5 rounded-full border px-2 text-[11px] font-semibold",
+        RISK_STYLES[risk],
+        className,
+      )}
     >
       {risk}
     </Badge>
@@ -177,17 +211,44 @@ export function Bar({
 }) {
   const pct = max <= 0 ? 0 : Math.min(100, Math.max(2, (value / max) * 100));
   return (
-    <div className={cn("h-1.5 w-full overflow-hidden rounded-full bg-muted", className)}>
-      <div className={cn("h-full rounded-full bg-foreground/80 transition-all", barClassName)} style={{ width: `${pct}%` }} />
+    <div
+      className={cn(
+        "h-1.5 w-full overflow-hidden rounded-full bg-muted",
+        className,
+      )}
+    >
+      <div
+        className={cn(
+          "h-full rounded-full bg-foreground/80 transition-all",
+          barClassName,
+        )}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
 
-export function LiveDot({ className, tone = "emerald" }: { className?: string; tone?: "emerald" | "amber" | "red" }) {
-  const color = tone === "emerald" ? "bg-emerald-500" : tone === "amber" ? "bg-amber-500" : "bg-red-500";
+export function LiveDot({
+  className,
+  tone = "emerald",
+}: {
+  className?: string;
+  tone?: "emerald" | "amber" | "red";
+}) {
+  const color =
+    tone === "emerald"
+      ? "bg-foreground"
+      : tone === "amber"
+        ? "bg-foreground/50"
+        : "bg-foreground/25";
   return (
     <span className={cn("relative flex size-2", className)}>
-      <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-60 pulse-ring", color)} />
+      <span
+        className={cn(
+          "absolute inline-flex h-full w-full rounded-full opacity-60 pulse-ring",
+          color,
+        )}
+      />
       <span className={cn("relative inline-flex size-2 rounded-full", color)} />
     </span>
   );

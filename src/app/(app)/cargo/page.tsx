@@ -11,22 +11,35 @@ import {
   Truck,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { SectionCard, StatStrip, Stat, Pill, EmptyState } from "@/components/shared/kit";
-import { StageFlow } from "@/components/shared/stage-flow";
-import { Field } from "@/components/shared/field";
-import { QrTag } from "@/components/shared/qr-tag";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  SectionCard,
+  StatStrip,
+  Stat,
+  Pill,
+  EmptyState,
+} from "@/app/components/shared/kit";
+import { StageFlow } from "@/app/components/shared/stage-flow";
+import { Field } from "@/app/components/shared/field";
+import { QrTag } from "@/app/components/shared/qr-tag";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+} from "@/app/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/ui/table";
 import { fmtDateTime, title } from "@/lib/format";
 import { cn } from "cn";
 import type { ConsignmentStatus, CargoCategory, ID } from "@/lib/types";
@@ -53,14 +66,22 @@ const NEXT_STATION: Partial<Record<ConsignmentStatus, ID>> = {
   OFFLOADED: "st-cpt",
 };
 
-const CATEGORIES: (CargoCategory | "all")[] = ["all", "food", "fuel", "medical", "spares", "scientific", "waste"];
+const CATEGORIES: (CargoCategory | "all")[] = [
+  "all",
+  "food",
+  "fuel",
+  "medical",
+  "spares",
+  "scientific",
+  "waste",
+];
 
 const CAT_TONE: Record<CargoCategory, string> = {
-  food: "bg-sky-500/15 text-sky-500 border-sky-500/30",
-  fuel: "bg-amber-500/15 text-amber-500 border-amber-500/30",
-  medical: "bg-red-500/15 text-red-500 border-red-500/30",
-  spares: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
-  scientific: "bg-violet-500/15 text-violet-500 border-violet-500/30",
+  food: "bg-muted text-muted-foreground border-border",
+  fuel: "bg-muted text-muted-foreground border-border",
+  medical: "bg-muted text-muted-foreground border-border",
+  spares: "bg-muted text-muted-foreground border-border",
+  scientific: "bg-muted text-muted-foreground border-border",
   waste: "bg-muted text-muted-foreground border-border",
 };
 
@@ -69,14 +90,36 @@ export default function CargoPage() {
   const [cat, setCat] = React.useState<CargoCategory | "all">("all");
   const [selected, setSelected] = React.useState<ID | null>(null);
 
-  const filtered = data.consignments.filter((c) => cat === "all" || c.category === cat);
+  const filtered = data.consignments.filter(
+    (c) => cat === "all" || c.category === cat,
+  );
 
   return (
     <div className="space-y-4">
       <StatStrip>
-        <Stat label="Consignments" value={data.consignments.length} icon={<Package className="size-4" />} hint="46-ISEA + Arctic" />
-        <Stat label="In transit" value={data.consignments.filter((c) => ["IN_TRANSIT_TO_PORT", "AT_HUB", "LOADED"].includes(c.status)).length} icon={<Truck className="size-4" />} hint="Across the chain" />
-        <Stat label="Custody events" value={data.custody.length} icon={<ScanLine className="size-4" />} hint="Hash-chained scans" tone="ok" />
+        <Stat
+          label="Consignments"
+          value={data.consignments.length}
+          icon={<Package className="size-4" />}
+          hint="46-ISEA + Arctic"
+        />
+        <Stat
+          label="In transit"
+          value={
+            data.consignments.filter((c) =>
+              ["IN_TRANSIT_TO_PORT", "AT_HUB", "LOADED"].includes(c.status),
+            ).length
+          }
+          icon={<Truck className="size-4" />}
+          hint="Across the chain"
+        />
+        <Stat
+          label="Custody events"
+          value={data.custody.length}
+          icon={<ScanLine className="size-4" />}
+          hint="Hash-chained scans"
+          tone="ok"
+        />
         <Stat
           label="Dwell anomalies"
           value={anomalies.length}
@@ -86,7 +129,10 @@ export default function CargoPage() {
         />
       </StatStrip>
 
-      <Tabs value={cat} onValueChange={(v) => setCat(v as CargoCategory | "all")}>
+      <Tabs
+        value={cat}
+        onValueChange={(v) => setCat(v as CargoCategory | "all")}
+      >
         <TabsList className="flex-wrap">
           {CATEGORIES.map((c) => (
             <TabsTrigger key={c} value={c} className="capitalize">
@@ -96,7 +142,11 @@ export default function CargoPage() {
         </TabsList>
       </Tabs>
 
-      <SectionCard title="Cargo register" description="Scan-first chain of custody across every hand-off" contentClassName="px-0">
+      <SectionCard
+        title="Cargo register"
+        description="Scan-first chain of custody across every hand-off"
+        contentClassName="px-0"
+      >
         <Table>
           <TableHeader>
             <TableRow>
@@ -114,16 +164,29 @@ export default function CargoPage() {
               const from = stationById.get(c.originStationId);
               const to = stationById.get(c.destinationStationId);
               return (
-                <TableRow key={c.id} className="cursor-pointer" onClick={() => setSelected(c.id)}>
-                  <TableCell className="font-mono text-xs">{c.qrCode}</TableCell>
-                  <TableCell className="max-w-52 truncate font-medium">{c.description}</TableCell>
+                <TableRow
+                  key={c.id}
+                  className="cursor-pointer"
+                  onClick={() => setSelected(c.id)}
+                >
+                  <TableCell className="font-mono text-xs">
+                    {c.qrCode}
+                  </TableCell>
+                  <TableCell className="max-w-52 truncate font-medium">
+                    {c.description}
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {from?.shortName} <ChevronRight className="inline size-3" /> {to?.shortName}
+                    {from?.shortName} <ChevronRight className="inline size-3" />{" "}
+                    {to?.shortName}
                   </TableCell>
                   <TableCell>
-                    <Pill className={cn("capitalize", CAT_TONE[c.category])}>{c.category}</Pill>
+                    <Pill className={cn("capitalize", CAT_TONE[c.category])}>
+                      {c.category}
+                    </Pill>
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{c.weightKg.toLocaleString("en-IN")} kg</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {c.weightKg.toLocaleString("en-IN")} kg
+                  </TableCell>
                   <TableCell>
                     <Pill variant="muted">{title(c.status)}</Pill>
                   </TableCell>
@@ -137,16 +200,30 @@ export default function CargoPage() {
         </Table>
       </SectionCard>
 
-      <CustodyDialog key={selected ?? "none"} consignmentId={selected} onClose={() => setSelected(null)} />
+      <CustodyDialog
+        key={selected ?? "none"}
+        consignmentId={selected}
+        onClose={() => setSelected(null)}
+      />
     </div>
   );
 }
 
-function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; onClose: () => void }) {
-  const { data, stationById, scanConsignment, verifyChain, tamperCustody } = useStore();
+function CustodyDialog({
+  consignmentId,
+  onClose,
+}: {
+  consignmentId: ID | null;
+  onClose: () => void;
+}) {
+  const { data, stationById, scanConsignment, verifyChain, tamperCustody } =
+    useStore();
   const cs = data.consignments.find((c) => c.id === consignmentId) ?? null;
   const [actor, setActor] = React.useState("Field operator");
-  const [verify, setVerify] = React.useState<{ ok: boolean; brokenAt?: string } | null>(null);
+  const [verify, setVerify] = React.useState<{
+    ok: boolean;
+    brokenAt?: string;
+  } | null>(null);
 
   if (!cs) return null;
 
@@ -154,8 +231,11 @@ function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; o
     .filter((c) => c.consignmentId === cs.id)
     .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));
   const flowIdx = FLOW.indexOf(cs.status);
-  const nextState = flowIdx >= 0 && flowIdx < FLOW.length - 1 ? FLOW[flowIdx + 1] : null;
-  const nextStation = nextState ? NEXT_STATION[nextState] ?? cs.destinationStationId : cs.destinationStationId;
+  const nextState =
+    flowIdx >= 0 && flowIdx < FLOW.length - 1 ? FLOW[flowIdx + 1] : null;
+  const nextStation = nextState
+    ? (NEXT_STATION[nextState] ?? cs.destinationStationId)
+    : cs.destinationStationId;
 
   return (
     <Dialog open={Boolean(consignmentId)} onOpenChange={(o) => !o && onClose()}>
@@ -163,20 +243,44 @@ function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; o
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {cs.description}
-            <Pill className={cn("capitalize", CAT_TONE[cs.category])}>{cs.category}</Pill>
+            <Pill className={cn("capitalize", CAT_TONE[cs.category])}>
+              {cs.category}
+            </Pill>
           </DialogTitle>
-          <DialogDescription className="font-mono text-xs">{cs.qrCode}</DialogDescription>
+          <DialogDescription className="font-mono text-xs">
+            {cs.qrCode}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-5 sm:grid-cols-[auto_1fr]">
           <div className="space-y-3">
             <QrTag value={cs.qrCode} size={132} />
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <Field valueClassName="truncate" label="Weight" value={`${cs.weightKg.toLocaleString("en-IN")} kg`} />
-              <Field valueClassName="truncate" label="Volume" value={`${cs.volumeM3} m³`} />
-              <Field valueClassName="truncate" label="Priority" value={cs.priority} />
-              <Field valueClassName="truncate" label="Hazmat" value={cs.hazmatClass ?? "—"} />
-              <Field valueClassName="truncate" label="Temp" value={cs.tempReq ?? "Ambient"} />
+              <Field
+                valueClassName="truncate"
+                label="Weight"
+                value={`${cs.weightKg.toLocaleString("en-IN")} kg`}
+              />
+              <Field
+                valueClassName="truncate"
+                label="Volume"
+                value={`${cs.volumeM3} m³`}
+              />
+              <Field
+                valueClassName="truncate"
+                label="Priority"
+                value={cs.priority}
+              />
+              <Field
+                valueClassName="truncate"
+                label="Hazmat"
+                value={cs.hazmatClass ?? "—"}
+              />
+              <Field
+                valueClassName="truncate"
+                label="Temp"
+                value={cs.tempReq ?? "Ambient"}
+              />
               <Field
                 valueClassName="truncate"
                 label="Route"
@@ -187,15 +291,27 @@ function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; o
 
           <div className="space-y-4">
             <div>
-              <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Lifecycle</p>
+              <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                Lifecycle
+              </p>
               <StageFlow steps={FLOW} activeIndex={flowIdx} />
             </div>
 
             <div className="rounded-lg border p-3">
               <div className="flex flex-wrap items-end gap-2">
                 <div className="flex-1">
-                  <Label htmlFor="actor" className="text-[10px] text-muted-foreground uppercase">Scanned by</Label>
-                  <Input id="actor" value={actor} onChange={(e) => setActor(e.target.value)} className="mt-1 h-8 text-xs" />
+                  <Label
+                    htmlFor="actor"
+                    className="text-[10px] text-muted-foreground uppercase"
+                  >
+                    Scanned by
+                  </Label>
+                  <Input
+                    id="actor"
+                    value={actor}
+                    onChange={(e) => setActor(e.target.value)}
+                    className="mt-1 h-8 text-xs"
+                  />
                 </div>
                 <Button
                   size="sm"
@@ -205,24 +321,38 @@ function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; o
                     scanConsignment(cs.id, nextState, nextStation, actor);
                     setVerify(null);
                   }}
-                  className="gap-1.5"
+                  className="gap-1.5 bg-foreground text-background hover:bg-foreground/90"
                 >
-                  <ScanLine /> Scan → {nextState ? title(nextState) : "Complete"}
+                  <ScanLine /> Scan →{" "}
+                  {nextState ? title(nextState) : "Complete"}
                 </Button>
               </div>
               <p className="mt-2 text-[11px] text-muted-foreground">
-                Illegal state jumps are rejected; each accepted scan appends a hash-chained custody event.
+                Illegal state jumps are rejected; each accepted scan appends a
+                hash-chained custody event.
               </p>
             </div>
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Custody ledger</p>
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Custody ledger
+                </p>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="xs" onClick={() => setVerify(verifyChain(cs.id))} className="gap-1">
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => setVerify(verifyChain(cs.id))}
+                    className="gap-1"
+                  >
                     <ShieldCheck /> Verify
                   </Button>
-                  <Button variant="ghost" size="xs" onClick={() => tamperCustody(cs.id)} className="gap-1 text-red-500">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => tamperCustody(cs.id)}
+                    className="gap-1 text-foreground/70"
+                  >
                     <AlertTriangle /> Tamper test
                   </Button>
                 </div>
@@ -232,10 +362,16 @@ function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; o
                 <div
                   className={cn(
                     "mb-2 flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs",
-                    verify.ok ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500" : "border-red-500/30 bg-red-500/10 text-red-500"
+                    verify.ok
+                      ? "border-border bg-muted text-muted-foreground"
+                      : "border-foreground/40 bg-foreground/10 text-foreground",
                   )}
                 >
-                  {verify.ok ? <CheckCircle2 className="size-3.5" /> : <AlertTriangle className="size-3.5" />}
+                  {verify.ok ? (
+                    <CheckCircle2 className="size-3.5" />
+                  ) : (
+                    <AlertTriangle className="size-3.5" />
+                  )}
                   {verify.ok
                     ? "Chain intact — every event hashes to its predecessor."
                     : `Chain broken at ${verify.brokenAt}. A record was edited after signing.`}
@@ -244,7 +380,10 @@ function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; o
 
               <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
                 {chain.length === 0 ? (
-                  <EmptyState title="No scans yet" hint="Scan the tag to open the custody chain." />
+                  <EmptyState
+                    title="No scans yet"
+                    hint="Scan the tag to open the custody chain."
+                  />
                 ) : (
                   chain
                     .slice()
@@ -252,15 +391,21 @@ function CustodyDialog({ consignmentId, onClose }: { consignmentId: ID | null; o
                     .map((ev) => (
                       <div key={ev.id} className="rounded-md border p-2.5">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium">{title(ev.toState)}</span>
-                          <span className="text-[10px] text-muted-foreground">{fmtDateTime(ev.ts)} UTC</span>
+                          <span className="text-xs font-medium">
+                            {title(ev.toState)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {fmtDateTime(ev.ts)} UTC
+                          </span>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          {stationById.get(ev.stationId)?.shortName} · {ev.scannedBy} ·{" "}
-                          {ev.lat.toFixed(3)}, {ev.lon.toFixed(3)}
+                          {stationById.get(ev.stationId)?.shortName} ·{" "}
+                          {ev.scannedBy} · {ev.lat.toFixed(3)},{" "}
+                          {ev.lon.toFixed(3)}
                         </p>
                         <p className="mt-1 font-mono text-[10px] break-all text-muted-foreground/70">
-                          prev {ev.prevHash.slice(0, 12)}… → hash {ev.hash.slice(0, 12)}…
+                          prev {ev.prevHash.slice(0, 12)}… → hash{" "}
+                          {ev.hash.slice(0, 12)}…
                         </p>
                       </div>
                     ))

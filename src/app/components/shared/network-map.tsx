@@ -18,21 +18,21 @@ function project(lat: number, lon: number) {
 }
 
 const TYPE_TONE: Record<string, string> = {
-  station: "fill-sky-500",
-  foreign_station: "fill-violet-500",
-  hub: "fill-amber-500",
-  port: "fill-teal-500",
-  airport: "fill-teal-500",
-  ship: "fill-emerald-500",
+  station: "fill-foreground",
+  foreign_station: "fill-muted-foreground",
+  hub: "fill-foreground/70",
+  port: "fill-foreground/45",
+  airport: "fill-foreground/45",
+  ship: "fill-foreground/60",
   hq: "fill-foreground",
 };
 
 const STATUS_TONE: Record<string, string> = {
   planned: "stroke-muted-foreground/40",
-  loading: "stroke-amber-500/70",
-  in_transit: "stroke-sky-500/80",
-  arrived: "stroke-emerald-500/60",
-  delayed: "stroke-red-500/80",
+  loading: "stroke-foreground/40",
+  in_transit: "stroke-foreground/80",
+  arrived: "stroke-muted-foreground",
+  delayed: "stroke-foreground",
 };
 
 export function NetworkMap({
@@ -99,7 +99,7 @@ export function NetworkMap({
                 className={cn(STATUS_TONE[r.status] ?? "stroke-muted-foreground/40", active && "dash")}
               />
               {active ? (
-                <circle r="4" className="fill-sky-500">
+                <circle r="4" className="fill-foreground">
                   <animateMotion dur="5s" repeatCount="indefinite" path={path} />
                 </circle>
               ) : null}
@@ -122,7 +122,7 @@ export function NetworkMap({
                   x2={p2.x}
                   y2={p2.y}
                   strokeWidth={3}
-                  className="stroke-red-500"
+                  className="stroke-foreground"
                   strokeDasharray="6 4"
                 />
               );
@@ -142,13 +142,13 @@ export function NetworkMap({
               className="cursor-pointer"
             >
               {isHighlight || onRoute ? (
-                <circle cx={p.x} cy={p.y} r="14" className="fill-red-500/30 pulse-ring" />
+                <circle cx={p.x} cy={p.y} r="14" className="fill-foreground/20 pulse-ring" />
               ) : null}
               <circle cx={p.x} cy={p.y} r={isHover ? 8 : 6} className={cn(TYPE_TONE[s.type] ?? "fill-foreground", "stroke-background")} strokeWidth={2} />
               <text
                 x={p.x + 11}
                 y={p.y + 4}
-                className={cn("text-[13px] font-medium", isHighlight || onRoute ? "fill-red-500" : "fill-foreground")}
+                className={cn("text-[13px]", isHighlight || onRoute ? "fill-foreground font-semibold" : "fill-foreground font-medium")}
               >
                 {s.shortName}
               </text>
@@ -168,10 +168,10 @@ export function NetworkMap({
         })}
       </svg>
       <div className="pointer-events-none absolute right-3 bottom-3 flex flex-wrap gap-3 rounded-md bg-background/70 px-3 py-1.5 text-[10px] text-muted-foreground backdrop-blur">
-        <span className="flex items-center gap-1"><i className="size-2 rounded-full bg-sky-500" /> Station</span>
-        <span className="flex items-center gap-1"><i className="size-2 rounded-full bg-violet-500" /> Foreign / partner</span>
-        <span className="flex items-center gap-1"><i className="size-2 rounded-full bg-amber-500" /> Gateway hub</span>
-        <span className="flex items-center gap-1"><i className="size-2 rounded-full bg-emerald-500" /> Vessel</span>
+        <span className="flex items-center gap-1"><i className="size-2 rounded-full bg-foreground" /> Station</span>
+        <span className="flex items-center gap-1"><i className="size-2 rounded-full bg-muted-foreground" /> Foreign / partner</span>
+        <span className="flex items-center gap-1"><i className="size-2 rounded-full bg-foreground/70" /> Gateway hub</span>
+        <span className="flex items-center gap-1"><i className="size-2 rounded-full bg-foreground/50" /> Vessel</span>
       </div>
     </div>
   );

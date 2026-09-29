@@ -53,7 +53,7 @@ export function compactBytes(bytes: number): string {
 }
 
 export const RISK_STYLES: Record<string, string> = {
-  CRITICAL: "text-red-500 border-red-500/30 bg-red-500/10",
-  WATCH: "text-amber-500 border-amber-500/30 bg-amber-500/10",
-  OK: "text-emerald-500 border-emerald-500/30 bg-emerald-500/10",
+  CRITICAL: "text-background border-foreground bg-foreground",
+  WATCH: "text-foreground border-foreground/30 bg-foreground/5",
+  OK: "text-muted-foreground border-border bg-muted",
 };
