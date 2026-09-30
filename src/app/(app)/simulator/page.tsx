@@ -150,23 +150,28 @@ export default function SimulatorPage() {
             <SectionCard
               title="Deliveries that miss their window"
               description="Cargo on the perturbed leg and its downstream legs"
+              className="pb-0"
+              contentClassName="p-0"
             >
               {result.failedDeliveries.length ? (
-                <div className="space-y-2">
+                <div className="divide-y border-t">
                   {result.failedDeliveries.map((f) => (
                     <div
                       key={f.consignmentId}
-                      className="rounded-lg border border-primary/20 bg-primary/5 p-2.5"
+                      className="flex items-start gap-2.5 px-4 py-3"
                     >
-                      <p className="text-xs font-medium">{f.description}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {f.reason}
-                      </p>
+                      <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium">{f.description}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {f.reason}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground">
+                <p className="px-4 py-6 text-center text-xs text-muted-foreground">
                   No consignment breaks its window at this delay.
                 </p>
               )}
@@ -177,13 +182,15 @@ export default function SimulatorPage() {
             <SectionCard
               title="Station impact"
               description="Days of Autonomy shortfall introduced by the slip"
+              className="pb-0"
+              contentClassName="p-0"
             >
               {result.stationImpact.length ? (
-                <div className="space-y-2">
+                <div className="divide-y border-t">
                   {result.stationImpact.map((s, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-3 rounded-lg border px-3 py-2"
+                      className="flex items-center gap-3 px-4 py-3"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium">{s.item}</p>
@@ -197,7 +204,7 @@ export default function SimulatorPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground">
+                <p className="px-4 py-6 text-center text-xs text-muted-foreground">
                   Buffers hold at this delay.
                 </p>
               )}

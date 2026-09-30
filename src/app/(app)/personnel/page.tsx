@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { BadgeCheck, HeartPulse, ShieldAlert, Users } from "lucide-react";
+import { BadgeCheck, Check, HeartPulse, ShieldAlert, Users } from "lucide-react";
 import { useStore } from "@/lib/store";
 import {
   SectionCard,
@@ -258,15 +258,21 @@ function RollCall() {
     p.name.toLowerCase().includes(search.toLowerCase()),
   );
   const unaccounted = onStation.filter((p) => !present.has(p.id));
+  const done = onStation.length > 0 && present.size >= onStation.length;
+  const pct = onStation.length
+    ? Math.round((present.size / onStation.length) * 100)
+    : 0;
 
   return (
     <SectionCard
       title="Muster roll-call"
       description="Account for every soul on station during an emergency"
+      className="self-start"
       action={
         <Button
           variant="outline"
           size="xs"
+          disabled={!onStation.length}
           onClick={() => setPresent(new Set(onStation.map((p) => p.id)))}
         >
           All present
@@ -281,99 +287,125 @@ function RollCall() {
           setPresent(new Set());
         }}
         label="name"
-        className="mb-3 w-full"
+        className="w-full"
       />
+
+      <div className="mt-2 rounded-lg border bg-card px-2.5 py-2">
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="font-medium tabular-nums">
+            {present.size}
+            <span className="text-muted-foreground">/{onStation.length}</span>{" "}
+            accounted
+          </span>
+          <span
+            className={cn(
+              "shrink-0 font-medium tabular-nums",
+              unaccounted.length ? "text-primary" : "text-muted-foreground",
+            )}
+          >
+            {unaccounted.length} missing
+          </span>
+        </div>
+        <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className={cn(
+              "h-full rounded-full transition-[width] duration-500",
+              done ? "bg-chart-2" : "bg-primary",
+            )}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
       <Input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Filter by name…"
-        className="mb-3 h-8 text-xs"
+        className="mt-2 h-7 text-xs"
       />
 
-      <div className="mb-3 flex items-center justify-between rounded-lg border px-3 py-2 text-xs">
-        <span className="text-muted-foreground">Accounted</span>
-        <span
-          className={cn(
-            "font-semibold tabular-nums",
-            unaccounted.length ? "text-foreground" : "text-muted-foreground",
-          )}
-        >
-          {present.size} / {onStation.length}
-        </span>
-      </div>
-
-      <div className="max-h-72 space-y-1 overflow-y-auto">
-        {shown.map((p) => {
-          const isPresent = present.has(p.id);
-          return (
-            <button
-              key={p.id}
-              onClick={() =>
-                setPresent((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(p.id)) next.delete(p.id);
-                  else next.add(p.id);
-                  return next;
-                })
-              }
-              className={cn(
-                "flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition-colors",
-                isPresent
-                  ? "border-primary/30 bg-primary/5"
-                  : "hover:bg-muted/50",
-              )}
-            >
-              <span
+      <div className="mt-2 max-h-56 divide-y overflow-y-auto rounded-lg border">
+        {shown.length ? (
+          shown.map((p) => {
+            const isPresent = present.has(p.id);
+            return (
+              <button
+                key={p.id}
+                onClick={() =>
+                  setPresent((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(p.id)) next.delete(p.id);
+                    else next.add(p.id);
+                    return next;
+                  })
+                }
                 className={cn(
-                  "size-3.5 rounded-full border",
-                  isPresent
-                    ? "border-primary bg-primary"
-                    : "border-muted-foreground",
+                  "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs transition-colors",
+                  isPresent ? "bg-primary/5" : "hover:bg-muted/40",
                 )}
-              />
-              <span className="font-medium">{p.name}</span>
-              <span className="ml-auto text-[10px] text-muted-foreground">
-                {p.role}
-              </span>
-            </button>
-          );
-        })}
+              >
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-semibold text-muted-foreground">
+                  {initials(p.name)}
+                </span>
+                <span className="min-w-0 flex-1 truncate font-medium">
+                  {p.name}
+                </span>
+                <span className="max-w-[38%] shrink-0 truncate text-[10px] text-muted-foreground">
+                  {p.role}
+                </span>
+                <span
+                  className={cn(
+                    "flex size-3.5 shrink-0 items-center justify-center rounded-full border",
+                    isPresent
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-muted-foreground/50",
+                  )}
+                >
+                  {isPresent ? <Check className="size-2.5" /> : null}
+                </span>
+              </button>
+            );
+          })
+        ) : (
+          <p className="px-3 py-6 text-center text-[11px] text-muted-foreground">
+            No personnel on station.
+          </p>
+        )}
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <Button
-          size="sm"
-          className="flex-1"
-          onClick={() => {
-            if (unaccounted.length) {
-              const inc = raiseIncident({
-                type: "missing_person",
-                severity: unaccounted.length > 1 ? "high" : "medium",
-                stationId,
-                personId: unaccounted[0].id,
-                summary: `Muster incomplete: ${unaccounted.map((p) => p.name).join(", ")} unaccounted after roll-call.`,
-              });
+      <Button
+        size="sm"
+        className="mt-2 w-full"
+        disabled={!onStation.length}
+        onClick={() => {
+          if (unaccounted.length) {
+            const inc = raiseIncident({
+              type: "missing_person",
+              severity: unaccounted.length > 1 ? "high" : "medium",
+              stationId,
+              personId: unaccounted[0].id,
+              summary: `Muster incomplete: ${unaccounted.map((p) => p.name).join(", ")} unaccounted after roll-call.`,
+            });
+            advanceIncident(
+              inc.id,
+              "MUSTER_COMPLETE",
+              "Roll-call completed, search initiated.",
+            );
+          } else {
+            const inc = data.incidents.find((i) => i.type === "medical");
+            if (inc)
               advanceIncident(
                 inc.id,
                 "MUSTER_COMPLETE",
-                "Roll-call completed, search initiated.",
+                "All personnel accounted for at station.",
               );
-            } else {
-              const inc = data.incidents.find((i) => i.type === "medical");
-              if (inc)
-                advanceIncident(
-                  inc.id,
-                  "MUSTER_COMPLETE",
-                  "All personnel accounted for at station.",
-                );
-            }
-          }}
-        >
-          Complete roll-call
-        </Button>
-      </div>
+          }
+        }}
+      >
+        Complete roll-call
+      </Button>
       {unaccounted.length ? (
-        <p className="mt-2 text-[11px] text-foreground/70">
+        <p className="mt-2 text-[11px] text-primary/80">
           {unaccounted.length} unaccounted — completing will raise a
           missing-person incident.
         </p>
@@ -384,4 +416,13 @@ function RollCall() {
       )}
     </SectionCard>
   );
+}
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }

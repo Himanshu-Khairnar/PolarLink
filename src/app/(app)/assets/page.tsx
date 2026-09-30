@@ -134,7 +134,7 @@ export default function AssetsPage() {
         ) : null}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-px overflow-hidden rounded-xl bg-border ring-1 ring-foreground/10 md:grid-cols-2 xl:grid-cols-3">
         {visible.map((a) => {
           const station = stationById.get(a.stationId);
           const daysToService = Math.round(
@@ -144,6 +144,7 @@ export default function AssetsPage() {
           return (
             <SectionCard
               key={a.id}
+              className="rounded-none shadow-none ring-0"
               title={a.name}
               description={`${a.type} · ${a.tag}`}
               action={
@@ -152,21 +153,34 @@ export default function AssetsPage() {
                 </Pill>
               }
             >
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <Field label="Station" value={station?.shortName ?? "—"} />
+              <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border bg-border text-center">
                 <Field
+                  variant="plain"
+                  className="bg-card px-2 py-2"
+                  label="Station"
+                  value={station?.shortName ?? "—"}
+                />
+                <Field
+                  variant="plain"
+                  className="bg-card px-2 py-2"
                   label="Hours"
                   value={a.hoursRun.toLocaleString("en-IN")}
                 />
                 <Field
+                  variant="plain"
+                  className="bg-card px-2 py-2"
                   label="Next svc"
                   value={
                     overdue
                       ? `${Math.abs(daysToService)}d over`
                       : `${daysToService}d`
                   }
-                  tone={
-                    overdue ? "critical" : daysToService < 7 ? "watch" : "ok"
+                  valueClassName={
+                    overdue
+                      ? "text-primary"
+                      : daysToService < 7
+                        ? "text-primary/70"
+                        : undefined
                   }
                 />
               </div>

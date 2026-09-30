@@ -1,20 +1,48 @@
 "use client";
 
 import * as React from "react";
+import {
+  geoNaturalEarth1,
+  geoPath,
+  geoGraticule,
+  type GeoPermissibleObjects,
+} from "d3-geo";
+import { feature } from "topojson-client";
+import type { Topology, GeometryCollection } from "topojson-specification";
+import type { LineString } from "geojson";
+import landTopo from "world-atlas/land-110m.json";
 import { cn } from "cn";
 import type { Leg, Station } from "@/lib/types";
 
 const W = 1000;
-const H = 620;
-const LON_MIN = -25;
-const LON_MAX = 100;
-const LAT_MIN = -82;
-const LAT_MAX = 86;
+const H = 540;
+
+/* Real world coastlines (Natural Earth 110m topojson), projected once. */
+const WORLD = feature(
+  landTopo as unknown as Topology,
+  (landTopo as unknown as Topology).objects.land as GeometryCollection,
+) as unknown as GeoPermissibleObjects;
+
+const PROJECTION = geoNaturalEarth1().fitSize([W, H], WORLD);
+const toPath = geoPath(PROJECTION);
+const LAND_PATH = toPath(WORLD) ?? "";
+const GRATICULE_PATH = toPath(geoGraticule().step([30, 30])()) ?? "";
+
+function parallel(lat: number, step = 2): LineString {
+  const coordinates: [number, number][] = [];
+  for (let lon = -180; lon <= 180; lon += step) coordinates.push([lon, lat]);
+  return { type: "LineString", coordinates };
+}
+
+const EQUATOR_PATH = toPath(parallel(0)) ?? "";
+const SEA_ICE_PATH = toPath(parallel(-60)) ?? "";
+const REFERENCE_PATHS = [-66.5, -23.5, 23.5, 66.5].map(
+  (lat) => toPath(parallel(lat)) ?? "",
+);
 
 function project(lat: number, lon: number) {
-  const x = ((lon - LON_MIN) / (LON_MAX - LON_MIN)) * W;
-  const y = ((LAT_MAX - lat) / (LAT_MAX - LAT_MIN)) * H;
-  return { x, y };
+  const p = PROJECTION([lon, lat]);
+  return { x: p ? p[0] : 0, y: p ? p[1] : 0 };
 }
 
 type LabelAnchor = "start" | "middle" | "end";
@@ -112,40 +140,6 @@ const STATUS_TONE: Record<string, string> = {
   delayed: "stroke-primary",
 };
 
-/** Coarse, stylised landmasses (lon, lat) so the field reads as a chart. */
-const LAND: [number, number][][] = [
-  [
-    [18, 36], [11, 37], [0, 36], [-6, 36], [-10, 30], [-17, 21], [-16, 14],
-    [-8, 5], [6, 4], [9, 4], [12, -5], [12, -16], [15, -28], [18, -34],
-    [25, -34], [32, -29], [35, -24], [40, -16], [41, -1], [43, 12], [51, 12],
-    [48, 6], [39, 4], [33, 15], [34, 28], [32, 31], [25, 32], [18, 36],
-  ],
-  [[35, 29], [43, 29], [57, 25], [51, 12], [43, 12], [35, 29]],
-  [
-    [68, 24], [61, 25], [57, 25], [68, 21], [73, 20], [77, 8], [80, 13],
-    [88, 22], [92, 22], [80, 27], [68, 24],
-  ],
-  [
-    [-10, 36], [0, 44], [10, 44], [12, 58], [30, 70], [40, 68], [30, 55],
-    [28, 45], [20, 41], [10, 36],
-  ],
-  [
-    [-25, -72], [-15, -70], [0, -70], [12, -69], [30, -68], [50, -66],
-    [70, -67], [76, -69], [90, -66], [100, -68], [100, -82], [-25, -82],
-  ],
-];
-
-function landPath(poly: [number, number][]) {
-  return (
-    poly
-      .map(([lon, lat], i) => {
-        const p = project(lat, lon);
-        return `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`;
-      })
-      .join(" ") + " Z"
-  );
-}
-
 export function NetworkMap({
   stations,
   legs,
@@ -169,9 +163,6 @@ export function NetworkMap({
     <div className={cn("relative overflow-hidden rounded-lg ring-1 ring-foreground/10", className)}>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
         <defs>
-          <pattern id="mapgrid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M40 0H0V40" fill="none" className="stroke-primary/5" strokeWidth="1" />
-          </pattern>
           <radialGradient id="mapglow" cx="50%" cy="20%" r="80%">
             <stop offset="0%" stopColor="currentColor" stopOpacity="0.05" />
             <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
@@ -184,60 +175,32 @@ export function NetworkMap({
             </feMerge>
           </filter>
         </defs>
-        <rect width={W} height={H} fill="url(#mapgrid)" />
         <rect width={W} height={H} fill="url(#mapglow)" className="text-primary" />
 
-        {/* stylised landmasses */}
-        {LAND.map((poly, i) => (
-          <path
-            key={`land-${i}`}
-            d={landPath(poly)}
-            className="fill-primary/5 stroke-primary/15"
-            strokeWidth={1}
-            strokeLinejoin="round"
-          />
-        ))}
+        {/* real coastlines */}
+        <path
+          d={LAND_PATH}
+          className="fill-primary/5 stroke-primary/20"
+          strokeWidth={0.75}
+          strokeLinejoin="round"
+        />
 
-        {/* graticule */}
-        {[-60, -30, 0, 30, 60].map((lat) => (
-          <line
-            key={`lat-${lat}`}
-            x1={0}
-            x2={W}
-            y1={project(lat, 0).y}
-            y2={project(lat, 0).y}
-            className={lat === 0 ? "stroke-border" : "stroke-border/60"}
-            strokeWidth={lat === 0 ? 1 : 0.5}
-          />
-        ))}
-        {[0, 30, 60, 90].map((lon) => (
-          <line
-            key={`lon-${lon}`}
-            x1={project(0, lon).x}
-            x2={project(0, lon).x}
-            y1={0}
-            y2={H}
-            className="stroke-border/60"
-            strokeWidth={0.5}
-          />
-        ))}
-        {[-66.5, -23.5, 23.5, 66.5].map((lat) => (
-          <line
-            key={`ref-${lat}`}
-            x1={0}
-            x2={W}
-            y1={project(lat, 0).y}
-            y2={project(lat, 0).y}
+        {/* graticule + reference parallels */}
+        <path d={GRATICULE_PATH} fill="none" className="stroke-border/50" strokeWidth={0.5} />
+        <path d={EQUATOR_PATH} fill="none" className="stroke-border" strokeWidth={1} />
+        {REFERENCE_PATHS.map((d, i) => (
+          <path
+            key={`ref-${i}`}
+            d={d}
+            fill="none"
             className="stroke-border/40"
             strokeWidth={0.5}
             strokeDasharray="1 4"
           />
         ))}
-        <line
-          x1={0}
-          x2={W}
-          y1={project(-60, 0).y}
-          y2={project(-60, 0).y}
+        <path
+          d={SEA_ICE_PATH}
+          fill="none"
           className="stroke-primary/40"
           strokeWidth={1}
           strokeDasharray="2 6"

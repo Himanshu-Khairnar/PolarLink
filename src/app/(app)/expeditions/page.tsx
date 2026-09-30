@@ -206,9 +206,10 @@ function Gantt({ legs, today }: { legs: Leg[]; today: Date }) {
       </div>
       <div className="space-y-2">
         {legs.map((l) => {
-          const left = pct(Date.parse(l.plannedDepart));
-          const right = pct(Date.parse(l.plannedArrive));
-          const width = Math.max(right - left, 1.5);
+          const startPct = pct(Date.parse(l.plannedDepart));
+          const endPct = pct(Date.parse(l.plannedArrive));
+          const width = Math.min(Math.max(endPct - startPct, 1.5), 100);
+          const left = Math.min(startPct, 100 - width);
           return (
             <div
               key={l.id}
@@ -217,7 +218,7 @@ function Gantt({ legs, today }: { legs: Leg[]; today: Date }) {
               <span className="truncate text-xs text-muted-foreground">
                 {l.mode}
               </span>
-              <div className="relative h-6 rounded-md bg-muted/40">
+              <div className="relative h-6 overflow-hidden rounded-md bg-muted/40">
                 <div
                   className={cn(
                     "absolute top-1/2 h-3 -translate-y-1/2 rounded-full",

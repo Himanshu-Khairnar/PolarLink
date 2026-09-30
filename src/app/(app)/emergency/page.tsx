@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   Activity,
+  ChevronDown,
   CloudLightning,
   MapPin,
   Radio,
@@ -116,9 +117,16 @@ export default function EmergencyPage() {
           <SectionCard
             title="Incident command"
             description="SOS → acknowledged → muster → response → evacuation → resolution"
-            action={<SosButton onRaise={raiseIncident} />}
+            className="pb-0"
+            contentClassName="p-0"
+            action={
+              <div className="flex items-center gap-2">
+                <Pill variant="muted">{openIncidents.length} open</Pill>
+                <SosButton onRaise={raiseIncident} />
+              </div>
+            }
           >
-            <div className="space-y-3">
+            <div className="divide-y border-t">
               {data.incidents.map((inc) => (
                 <IncidentRow
                   key={inc.id}
@@ -155,15 +163,15 @@ export default function EmergencyPage() {
               }
               className="mb-3"
             />
-            <div className="space-y-2">
+            <div className="divide-y overflow-hidden rounded-lg border">
               {routes.map((r, i) => (
                 <button
                   key={r.id}
                   onClick={() => setActiveRoute(r.id)}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors",
+                    "flex w-full items-center gap-3 px-3 py-2 text-left transition-colors",
                     activeRoute === r.id
-                      ? "border-primary/40 bg-primary/5"
+                      ? "bg-primary/5"
                       : "hover:bg-muted/50",
                   )}
                 >
@@ -360,35 +368,69 @@ function IncidentRow({
     .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));
   const [open, setOpen] = React.useState(false);
 
+  const closed = incident.status === "RESOLVED" || incident.status === "REVIEWED";
+  const progress = ((idx + 1) / INCIDENT_FLOW.length) * 100;
+
   return (
-    <div className="rounded-lg border">
+    <div
+      className={cn(
+        "relative bg-card transition-colors",
+        open ? "bg-primary/[0.04]" : "hover:bg-muted/30",
+      )}
+    >
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
+        className="flex w-full items-center gap-3 py-3 pr-4 pl-4 text-left"
       >
         <span
           className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-lg border",
+            "flex size-9 shrink-0 items-center justify-center rounded-lg border",
             SEV_TONE[incident.severity],
           )}
         >
           <Siren className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-medium">
-            {title(incident.type)} ·{" "}
-            {stationById.get(incident.stationId)?.shortName}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-medium">
+              {title(incident.type)}
+            </p>
+            <span className="shrink-0 text-[11px] text-muted-foreground">
+              · {stationById.get(incident.stationId)?.shortName}
+            </span>
+          </div>
           <p className="truncate text-[11px] text-muted-foreground">
             {incident.summary}
           </p>
         </div>
-        <Pill className={SEV_TONE[incident.severity]}>{incident.severity}</Pill>
-        <Pill variant="muted">{title(incident.status)}</Pill>
+        <div className="hidden shrink-0 items-center gap-2 sm:flex">
+          <Pill className={SEV_TONE[incident.severity]}>
+            {incident.severity}
+          </Pill>
+          <Pill variant="muted">{title(incident.status)}</Pill>
+        </div>
+        <ChevronDown
+          className={cn(
+            "size-4 shrink-0 text-muted-foreground transition-transform",
+            open && "rotate-180",
+          )}
+        />
       </button>
 
+      <div className="pr-4 pb-2.5 pl-4">
+        <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className={cn(
+              "h-full rounded-full transition-[width] duration-500",
+              closed ? "bg-chart-2" : "bg-primary",
+            )}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
       {open ? (
-        <div className="border-t px-3 py-3">
+        <div className="border-t bg-muted/20 py-3 pr-4 pl-4">
           <StageFlow
             steps={INCIDENT_FLOW}
             activeIndex={idx}
@@ -396,19 +438,23 @@ function IncidentRow({
             className="mb-3"
           />
 
-          <div className="mb-3 space-y-1.5">
+          <ol className="mb-3 space-y-2">
             {actions.map((a) => (
-              <div key={a.id} className="flex items-start gap-2 text-[11px]">
-                <Activity className="mt-0.5 size-3 text-muted-foreground" />
-                <span className="flex-1 text-muted-foreground">{a.action}</span>
-                <span className="shrink-0 text-muted-foreground/70">
+              <li key={a.id} className="flex items-start gap-2.5">
+                <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Activity className="size-2.5" />
+                </span>
+                <span className="flex-1 text-[11px] text-muted-foreground">
+                  {a.action}
+                </span>
+                <span className="shrink-0 text-[10px] text-muted-foreground/70 tabular-nums">
                   {fmtDateTime(a.ts)}
                 </span>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
               disabled={!next}
