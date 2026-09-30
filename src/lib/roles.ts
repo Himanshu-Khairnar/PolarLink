@@ -10,6 +10,7 @@ export type ActionKey =
   | "personnel.add"
   | "personnel.muster"
   | "assets.service"
+  | "assets.create"
   | "emergency.raise"
   | "emergency.advance"
   | "expeditions.create"
@@ -80,6 +81,7 @@ export const ROLES: Record<Role, RoleDef> = {
       "inventory.txn",
       "personnel.muster",
       "assets.service",
+      "assets.create",
       "emergency.raise",
       "emergency.advance",
       "expeditions.create",
@@ -100,6 +102,7 @@ export const ROLES: Record<Role, RoleDef> = {
       "inventory.txn",
       "personnel.muster",
       "assets.service",
+      "assets.create",
       "emergency.raise",
       "emergency.advance",
       "waste.advance",
@@ -116,6 +119,7 @@ export const ROLES: Record<Role, RoleDef> = {
       "inventory.txn",
       "inventory.add",
       "assets.service",
+      "assets.create",
       "waste.advance",
       "sync.flush",
     ],

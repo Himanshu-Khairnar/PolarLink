@@ -13,6 +13,7 @@ import {
 } from "@/lib/engine";
 import type {
   Alert,
+  Asset,
   AutonomyRow,
   CargoCategory,
   Consignment,
@@ -158,6 +159,14 @@ export interface StoreValue {
   }) => Incident;
   advanceIncident: (incidentId: ID, status: Incident["status"], action: string) => void;
   logMaintenance: (assetId: ID, action: string, notes?: string) => void;
+  addAsset: (input: {
+    name: string;
+    type: string;
+    stationId: ID;
+    condition?: Asset["condition"];
+    hoursRun?: number;
+    nextMaintenanceDays?: number;
+  }) => Asset;
   setWasteStage: (id: ID, stage: WasteEntry["stage"]) => void;
   simulate: (result: SimulationResult | null) => void;
   simulation: SimulationResult | null;
@@ -716,6 +725,52 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const addAsset = React.useCallback<StoreValue["addAsset"]>(
+    (input) => {
+      const id = `ga-${Date.now()}`;
+      const tag = `NCP-${(input.type.trim() || "AST")
+        .slice(0, 3)
+        .toUpperCase()}-${100 + data.groundAssets.length}`;
+      const asset: Asset = {
+        id,
+        tag,
+        name: input.name,
+        type: input.type,
+        stationId: input.stationId,
+        condition: input.condition ?? "good",
+        hoursRun: input.hoursRun ?? 0,
+        nextMaintenance: new Date(
+          Date.now() + (input.nextMaintenanceDays ?? 90) * 86400000
+        ).toISOString(),
+        lastService: new Date().toISOString(),
+      };
+      setData((prev) => {
+        const syncEvent: SyncEvent = {
+          id: `sy-asset-${Date.now()}`,
+          eventUuid: digest(`${id}-asset`).slice(0, 12),
+          originNode: `${prev.stations.find((s) => s.id === input.stationId)?.shortName ?? "edge"}-edge`,
+          entity: "asset",
+          op: "create",
+          payload: `${tag}:${input.type}`,
+          lamportTs: prev.syncLog.length + 14000,
+          priority: "P1",
+          bytes: 180,
+          appliedAt: link === "offline" ? undefined : new Date().toISOString(),
+        };
+        return {
+          ...prev,
+          groundAssets: [asset, ...prev.groundAssets],
+          syncLog: [syncEvent, ...prev.syncLog].slice(0, 60),
+        };
+      });
+      toast.success("Asset added", {
+        description: `${tag} \u00b7 ${input.name}`,
+      });
+      return asset;
+    },
+    [data.groundAssets.length, link]
+  );
+
   const setWasteStage = React.useCallback((id: ID, stage: WasteEntry["stage"]) => {
     setData((prev) => ({
       ...prev,
@@ -928,6 +983,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     raiseIncident,
     advanceIncident,
     logMaintenance,
+    addAsset,
     setWasteStage,
     simulate: setSimulation,
     simulation,

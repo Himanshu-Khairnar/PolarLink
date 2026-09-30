@@ -47,14 +47,18 @@ Before the judges walk in:
 3. Open the sidebar; confirm the footer says **"FastAPI AI service online"**
    (start `uvicorn app.main:app --reload --port 8000` inside `backend/` if you
    want the badge green — it is cosmetic for the demo).
-4. Hard-refresh once to guarantee a clean seed. **There is no on-screen reset
-   button — refresh the page to reset the demo.** Do this between dry runs.
+4. **Reset a dry run:** the app opens on a role picker. Sign out (role dropdown
+   → *Sign out*) or clear `sessionStorage`, then refresh for a clean seed.
+   There is no in-app data reset button.
 5. Have the copilot prompts ready (see Scene 11).
 
-**Demo cast / roles.** No login screen — roles are switched live from the topbar
-dropdown. Switching a role also snaps the scope:
-`hq_logistics` → all stations · `station_leader` → Maitri ·
-`inventory_keeper` / `medical_officer` → Bharati · `ship_air_ops` → ship.
+**Demo cast / roles.** The app opens on a **role-picker sign-in screen** (no
+password). Picking a role sets its scope and the pages it can open:
+`hq_logistics` / `expedition_leader` → all stations · `station_leader` →
+Maitri · `inventory_keeper` / `medical_officer` → Bharati · `ship_air_ops` →
+ship · `member` → Maitri, read-only. While signed in you can still switch roles
+live from the topbar; scoped roles show a **locked scope chip** and a **Sign
+out** item.
 
 **Key seed anchors to reference out loud:**
 
@@ -68,6 +72,18 @@ dropdown. Switching a role also snaps the scope:
 ---
 
 ## 3. Scene-by-scene flow
+
+### Scene 0 — Sign in (role picker) · ~20s
+The app opens on the **role picker**. Point out the seven roles and that the
+scope is shown on each card.
+
+1. Click **HQ Logistics Officer** (full command centre, all stations).
+2. Note the sidebar nav and the scope chip in the top bar.
+
+> Say: "Access is role-based — pick a role and the system scopes what you can
+> see and do. We'll sign out at the end and walk it through as a station leader."
+
+---
 
 ### Scene 1 — Command Centre (orient) · ~60s
 Default landing page. **Role: HQ Logistics Officer · Scope: All stations.**
@@ -249,31 +265,43 @@ Click the **floating chat button** (bottom-right). Try, in order:
 
 ---
 
-### Scene 12 — Role-based access (close) · ~20s
+### Scene 12 — Role-based access (close) · ~40s
 Topbar → **role dropdown**. Switch from **HQ Logistics Officer** to
 **Station Leader**.
 
-1. Note the **scope chip** snap to **Maitri**.
-2. Note the alert badge / incident counts are scoped accordingly.
+1. Note the **scope chip** becomes a **locked** Maitri chip (scoped roles
+   cannot widen their own view).
+2. Note the sidebar **drops** Simulator and Satellite Sync, and the dashboard
+   KPIs, station risk board and map narrow to Maitri.
+3. Try to open a restricted route (e.g. `/sync` by URL) → **"Restricted area"**
+   panel appears.
+4. Switch to **Expedition Member** → nav shrinks to a read-only view: action
+   buttons like *Scan*, *Apply txn*, *Raise SOS* are **disabled**.
+5. Finally, role dropdown → **Sign out** → back to the picker.
 
-> Say: "Same system, scoped to the role and the station. HQ sees the network;
-> a station leader sees their own patch."
+> Say: "Same system, scoped to the role and the station. HQ sees the whole
+> network and every action; a station leader sees their patch; a crew member
+> gets a read-only view. RBAC is real, not cosmetic."
 
 ---
 
 ## 4. Short version (if you only have 5 minutes)
 
-Command Centre → Cargo & Custody (tamper test + scan) → Emergency
-(evac routes + 19-byte packet) → What-if Simulator (12-day delay) → Satellite
-Sync (offline → P0 flush). That hits the four judged pillars: **integrity,
-response, foresight, offline resilience.**
+Sign in as **HQ Logistics Officer** → Command Centre → Cargo & Custody (tamper
+test + scan) → Emergency (evac routes + 19-byte packet) → What-if Simulator
+(12-day delay) → Satellite Sync (offline → P0 flush). That hits the four judged
+pillars: **integrity, response, foresight, offline resilience.**
 
 ---
 
 ## 5. Recovery / gotchas
 
-- **Something looks mutated from a dry run:** refresh the page — the seed
-  regenerates from scratch. No reset button exists in the UI.
+- **Something looks mutated from a dry run:** sign out and refresh — the seed
+  regenerates from scratch. Use **Sign out** in the role dropdown (or clear the
+  `polarlink:role` sessionStorage key), since the app reopens on the role
+  picker. There is no in-app data reset button.
+- **Stuck on a restricted page as a scoped role:** switch back to a role with
+  access, or use the *Back to Command Centre* button on the restricted panel.
 - **Backend badge red:** cosmetic. The whole demo runs on the frontend engine;
   do not burn demo time debugging it.
 - **Toasts stack up:** they auto-dismiss; give them a beat before moving on.

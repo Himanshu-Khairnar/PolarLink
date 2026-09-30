@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CalendarClock, Gauge, Wrench } from "lucide-react";
+import { CalendarClock, Gauge, Plus, Wrench } from "lucide-react";
 import { useStore } from "@/lib/store";
 import {
   SectionCard,
@@ -20,6 +20,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/app/components/ui/dialog";
 import {
   Table,
@@ -133,11 +134,14 @@ export default function AssetsPage() {
             </span>
           ) : null}
         </p>
-        {filter !== "all" ? (
-          <Button variant="ghost" size="xs" onClick={() => setFilter("all")}>
-            Clear filter
-          </Button>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {filter !== "all" ? (
+            <Button variant="ghost" size="xs" onClick={() => setFilter("all")}>
+              Clear filter
+            </Button>
+          ) : null}
+          {can("assets.create") ? <AddAssetDialog /> : null}
+        </div>
       </div>
 
       <div className="grid gap-px overflow-hidden rounded-xl bg-border ring-1 ring-foreground/10 md:grid-cols-2 xl:grid-cols-3">
@@ -322,6 +326,176 @@ function LogServiceDialog({
             }}
           >
             Log maintenance &amp; reset schedule
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const ASSET_TYPES = [
+  "Snowmobile",
+  "Generator",
+  "Vehicle",
+  "Instrument",
+  "Crane",
+  "Incinerator",
+  "Water plant",
+  "Pump",
+  "Heater",
+  "Antenna",
+];
+
+const CONDITIONS: Asset["condition"][] = [
+  "good",
+  "fair",
+  "needs_attention",
+  "down",
+];
+
+const SELECT_CLS =
+  "mt-1 h-8 w-full rounded-md border bg-transparent px-2 text-xs outline-none focus-visible:border-ring";
+
+function AddAssetDialog() {
+  const { data, addAsset, scope } = useStore();
+  const stations = data.stations.filter((s) => s.type === "station");
+  const [open, setOpen] = React.useState(false);
+  const [name, setName] = React.useState("");
+  const [type, setType] = React.useState("Generator");
+  const [stationId, setStationId] = React.useState(
+    scope !== "all" && stations.some((s) => s.id === scope)
+      ? scope
+      : (stations[0]?.id ?? ""),
+  );
+  const [condition, setCondition] = React.useState<Asset["condition"]>("good");
+  const [hoursRun, setHoursRun] = React.useState("0");
+  const [nextMaintenanceDays, setNextMaintenanceDays] = React.useState("90");
+
+  const valid = name.trim() !== "" && type.trim() !== "" && stationId !== "";
+
+  const submit = () => {
+    if (!valid) return;
+    addAsset({
+      name: name.trim(),
+      type: type.trim(),
+      stationId,
+      condition,
+      hoursRun: Math.max(0, Number(hoursRun) || 0),
+      nextMaintenanceDays: Math.max(1, Number(nextMaintenanceDays) || 90),
+    });
+    setOpen(false);
+    setName("");
+    setType("Generator");
+    setCondition("good");
+    setHoursRun("0");
+    setNextMaintenanceDays("90");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button size="sm" className="gap-1.5" />}>
+        <Plus /> Add asset
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add asset</DialogTitle>
+          <DialogDescription>
+            Registers field equipment against a station and opens a service
+            schedule.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Name
+              </Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Cummins 250 kVA"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Type
+              </Label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                className={SELECT_CLS}
+              >
+                {ASSET_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Station
+              </Label>
+              <select
+                value={stationId}
+                onChange={(e) => setStationId(e.target.value)}
+                className={SELECT_CLS}
+              >
+                {stations.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.shortName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Condition
+              </Label>
+              <select
+                value={condition}
+                onChange={(e) =>
+                  setCondition(e.target.value as Asset["condition"])
+                }
+                className={SELECT_CLS}
+              >
+                {CONDITIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {title(c)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Hours run
+              </Label>
+              <Input
+                value={hoursRun}
+                onChange={(e) => setHoursRun(e.target.value)}
+                type="number"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Service in (days)
+              </Label>
+              <Input
+                value={nextMaintenanceDays}
+                onChange={(e) => setNextMaintenanceDays(e.target.value)}
+                type="number"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+          </div>
+          <Button className="w-full" disabled={!valid} onClick={submit}>
+            Add asset
           </Button>
         </div>
       </DialogContent>
