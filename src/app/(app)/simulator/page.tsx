@@ -13,7 +13,6 @@ import { Button } from "@/app/components/ui/button";
 import { Label } from "@/app/components/ui/label";
 import { monteCarloSeason, simulateDelay } from "@/lib/engine";
 import { fmtDate } from "@/lib/format";
-import { cn } from "cn";
 
 export default function SimulatorPage() {
   const { data, autonomy, stationById } = useStore();
@@ -74,7 +73,7 @@ export default function SimulatorPage() {
               max={30}
               value={delay}
               onChange={(e) => setDelay(Number(e.target.value))}
-              className="mt-3 w-full accent-foreground"
+              className="mt-3 w-full accent-primary"
             />
             <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
               <span>On plan</span>
@@ -137,28 +136,14 @@ export default function SimulatorPage() {
               description="Share of the Monte Carlo draws where every critical delivery lands in-window"
             >
               <ConfidenceMeter value={result.confidence} />
-              <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                <div className="rounded-lg border p-3">
-                  <p className="text-muted-foreground">Baseline confidence</p>
-                  <p className="mt-1 font-heading text-xl font-semibold">
-                    94.0%
-                  </p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-muted-foreground">
-                    With +{result.delayDays}d slip
-                  </p>
-                  <p
-                    className={cn(
-                      "mt-1 font-heading text-xl font-semibold",
-                      result.confidence < 60
-                        ? "text-foreground"
-                        : "text-foreground/70",
-                    )}
-                  >
-                    {result.confidence}%
-                  </p>
-                </div>
+              <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border">
+                <Stat label="Baseline confidence" value="94.0%" hint="No perturbation" />
+                <Stat
+                  label={`With +${result.delayDays}d slip`}
+                  value={`${result.confidence}%`}
+                  tone={result.confidence < 60 ? "critical" : "default"}
+                  hint="Replayed plan"
+                />
               </div>
             </SectionCard>
 
@@ -171,7 +156,7 @@ export default function SimulatorPage() {
                   {result.failedDeliveries.map((f) => (
                     <div
                       key={f.consignmentId}
-                      className="rounded-lg border border-foreground/20 bg-foreground/5 p-2.5"
+                      className="rounded-lg border border-primary/20 bg-primary/5 p-2.5"
                     >
                       <p className="text-xs font-medium">{f.description}</p>
                       <p className="text-[11px] text-muted-foreground">
@@ -239,31 +224,10 @@ export default function SimulatorPage() {
             >
               {mc ? (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-lg border py-3">
-                      <p className="text-[10px] text-muted-foreground uppercase">
-                        Confidence
-                      </p>
-                      <p className="mt-1 font-heading text-lg font-semibold">
-                        {mc.confidence}%
-                      </p>
-                    </div>
-                    <div className="rounded-lg border py-3">
-                      <p className="text-[10px] text-muted-foreground uppercase">
-                        P50 delay
-                      </p>
-                      <p className="mt-1 font-heading text-lg font-semibold">
-                        {mc.p50}d
-                      </p>
-                    </div>
-                    <div className="rounded-lg border py-3">
-                      <p className="text-[10px] text-muted-foreground uppercase">
-                        P90 delay
-                      </p>
-                      <p className="mt-1 font-heading text-lg font-semibold text-foreground/70">
-                        {mc.p90}d
-                      </p>
-                    </div>
+                  <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border bg-border">
+                    <Stat label="Confidence" value={`${mc.confidence}%`} hint="In-window draws" />
+                    <Stat label="P50 delay" value={`${mc.p50}d`} hint="Median" />
+                    <Stat label="P90 delay" value={`${mc.p90}d`} hint="Worst decile" />
                   </div>
                   <Histogram value={mc.p90} mean={mc.p50} />
                   <p className="text-[11px] text-muted-foreground">
@@ -301,10 +265,10 @@ function ConfidenceMeter({ value }: { value: number }) {
   const filled = (value / 100) * c;
   const tone =
     value > 75
-      ? "stroke-foreground"
+      ? "stroke-primary"
       : value > 45
-        ? "stroke-foreground/55"
-        : "stroke-foreground/25";
+        ? "stroke-primary/55"
+        : "stroke-primary/25";
   return (
     <div className="flex items-center gap-4">
       <svg width={140} height={80} viewBox="0 0 140 80">
@@ -362,7 +326,7 @@ function Histogram({ mean, value }: { mean: number; value: number }) {
       {bars.map((b, i) => (
         <div
           key={i}
-          className="flex-1 rounded-t bg-foreground/20"
+          className="flex-1 rounded-t bg-primary/20"
           style={{ height: `${(b / max) * 100}%` }}
         />
       ))}

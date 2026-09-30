@@ -17,7 +17,7 @@ export default function Error({
 
   return (
     <div className="flex min-h-[60svh] flex-col items-center justify-center gap-3 text-center">
-      <span className="flex size-12 items-center justify-center rounded-xl border border-foreground/30 bg-foreground/10 text-foreground">
+      <span className="flex size-12 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-foreground">
         <AlertTriangle className="size-6" />
       </span>
       <div className="space-y-1">

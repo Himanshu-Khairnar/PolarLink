@@ -44,7 +44,7 @@ export function ForecastChart({
           x2={width}
           y1={y(threshold)}
           y2={y(threshold)}
-          className="stroke-foreground/50"
+          className="stroke-primary/50"
           strokeWidth={1}
           strokeDasharray="5 4"
         />
@@ -141,7 +141,7 @@ export function HBars({
             </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div className={cn("h-full rounded-full bg-foreground/80", r.className)} style={{ width: `${(r.value / top) * 100}%` }} />
+            <div className={cn("h-full rounded-full bg-primary/80", r.className)} style={{ width: `${(r.value / top) * 100}%` }} />
           </div>
         </div>
       ))}

@@ -364,7 +364,7 @@ export function Copilot() {
                     key={s}
                     type="button"
                     onClick={() => send(s)}
-                    className="group flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:border-foreground/20 hover:bg-muted hover:text-foreground"
+                    className="group flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:border-primary/20 hover:bg-muted hover:text-foreground"
                   >
                     <span className="truncate">{s}</span>
                     <ArrowUp className="size-3.5 shrink-0 rotate-45 opacity-0 transition-opacity group-hover:opacity-100" />

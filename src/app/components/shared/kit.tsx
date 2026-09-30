@@ -168,7 +168,7 @@ export function Pill({
         variant === "muted" &&
           "border-transparent bg-muted text-muted-foreground",
         variant === "solid" &&
-          "border-transparent bg-foreground text-background",
+          "border-transparent bg-primary text-primary-foreground",
         className,
       )}
     >
@@ -219,7 +219,7 @@ export function Bar({
     >
       <div
         className={cn(
-          "h-full rounded-full bg-foreground/80 transition-all",
+          "h-full rounded-full bg-primary/80 transition-all",
           barClassName,
         )}
         style={{ width: `${pct}%` }}
@@ -237,10 +237,10 @@ export function LiveDot({
 }) {
   const color =
     tone === "emerald"
-      ? "bg-foreground"
+      ? "bg-primary"
       : tone === "amber"
-        ? "bg-foreground/50"
-        : "bg-foreground/25";
+        ? "bg-primary/50"
+        : "bg-primary/25";
   return (
     <span className={cn("relative flex size-2", className)}>
       <span

@@ -48,9 +48,9 @@ const INCIDENT_FLOW: Incident["status"][] = [
 ];
 
 const SEV_TONE: Record<string, string> = {
-  critical: "border-foreground bg-foreground text-background",
-  high: "border-foreground/40 bg-foreground/10 text-foreground",
-  medium: "border-foreground/25 bg-foreground/5 text-foreground/75",
+  critical: "border-primary bg-primary text-primary-foreground",
+  high: "border-primary/40 bg-primary/10 text-foreground",
+  medium: "border-primary/25 bg-primary/5 text-foreground/75",
   low: "border-border bg-muted text-muted-foreground",
 };
 
@@ -163,7 +163,7 @@ export default function EmergencyPage() {
                   className={cn(
                     "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors",
                     activeRoute === r.id
-                      ? "border-foreground/40 bg-foreground/5"
+                      ? "border-primary/40 bg-primary/5"
                       : "hover:bg-muted/50",
                   )}
                 >
@@ -184,7 +184,7 @@ export default function EmergencyPage() {
                       "border-transparent",
                       r.feasible
                         ? "bg-muted text-muted-foreground"
-                        : "bg-foreground/10 text-foreground",
+                        : "bg-primary/10 text-foreground",
                     )}
                   >
                     {r.feasible ? "feasible" : "gated"}
@@ -448,11 +448,11 @@ function SosPanel({
       title="SOS console"
       description={`Priority lane from ${station?.shortName ?? "station"}`}
     >
-      <div className="flex flex-col gap-3 rounded-xl border border-foreground/30 bg-foreground/5 p-4">
+      <div className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
         <div className="flex items-center gap-2">
           <span className="relative flex size-3">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-foreground opacity-60" />
-            <span className="relative inline-flex size-3 rounded-full bg-foreground" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+            <span className="relative inline-flex size-3 rounded-full bg-primary" />
           </span>
           <span className="text-xs font-medium text-foreground">
             {link === "offline"

@@ -51,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SheetContent side="left" className="w-72 p-0">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <div className="flex h-14 items-center gap-2.5 border-b px-4">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Snowflake className="size-4.5" />
             </span>
             <div className="leading-tight">

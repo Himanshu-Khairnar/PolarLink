@@ -34,9 +34,9 @@ import type { Asset } from "@/lib/types";
 
 const CONDITION_TONE: Record<Asset["condition"], string> = {
   good: "border-border bg-muted text-muted-foreground",
-  fair: "border-foreground/15 bg-foreground/5 text-foreground/70",
-  needs_attention: "border-foreground/30 bg-foreground/10 text-foreground/80",
-  down: "border-foreground bg-foreground text-background",
+  fair: "border-primary/15 bg-primary/5 text-foreground/70",
+  needs_attention: "border-primary/30 bg-primary/10 text-foreground/80",
+  down: "border-primary bg-primary text-primary-foreground",
 };
 
 export default function AssetsPage() {
@@ -176,10 +176,10 @@ export default function AssetsPage() {
                 className="mt-3"
                 barClassName={
                   overdue
-                    ? "bg-foreground"
+                    ? "bg-primary"
                     : daysToService < 7
-                      ? "bg-foreground/50"
-                      : "bg-foreground/25"
+                      ? "bg-primary/50"
+                      : "bg-primary/25"
                 }
               />
               <div className="mt-3 flex items-center justify-between">

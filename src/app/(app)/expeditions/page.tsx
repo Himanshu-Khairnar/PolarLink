@@ -20,6 +20,7 @@ import {
 } from "@/app/components/shared/kit";
 import { Field } from "@/app/components/shared/field";
 import { Button } from "@/app/components/ui/button";
+import { Card } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import {
@@ -31,6 +32,7 @@ import {
   DialogTrigger,
 } from "@/app/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import { useTabParam } from "@/lib/use-tab-param";
 import { fmtDate, title } from "@/lib/format";
 import { cn } from "cn";
 import type { Expedition, ID, Leg } from "@/lib/types";
@@ -53,20 +55,22 @@ const LEG_MODES = [
 
 const LEG_STATUS_TONE: Record<string, string> = {
   planned: "bg-muted-foreground/35",
-  loading: "bg-foreground/40",
-  in_transit: "bg-foreground/75",
-  arrived: "bg-foreground/55",
-  delayed: "bg-foreground/90",
+  loading: "bg-primary/40",
+  in_transit: "bg-primary/75",
+  arrived: "bg-primary/55",
+  delayed: "bg-primary/90",
 };
 
 export default function ExpeditionsPage() {
   const { data, today } = useStore();
-  const [activeExp, setActiveExp] = React.useState<ID>(
-    data.expeditions[0]?.id ?? "",
+  const [expCode, setExpCode] = useTabParam(
+    "expedition",
+    data.expeditions[0]?.code ?? "",
+    (v) => data.expeditions.some((e) => e.code === v),
   );
 
   const exp =
-    data.expeditions.find((e) => e.id === activeExp) ?? data.expeditions[0];
+    data.expeditions.find((e) => e.code === expCode) ?? data.expeditions[0];
 
   if (!exp) {
     return (
@@ -116,19 +120,16 @@ export default function ExpeditionsPage() {
       </StatStrip>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Tabs
-          value={activeExp}
-          onValueChange={(v) => setActiveExp(v as string)}
-        >
+        <Tabs value={exp.code} onValueChange={setExpCode}>
           <TabsList>
             {data.expeditions.map((e) => (
-              <TabsTrigger key={e.id} value={e.id}>
+              <TabsTrigger key={e.id} value={e.code}>
                 {e.code}
               </TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
-        <NewExpeditionDialog onCreated={(id) => setActiveExp(id)} />
+        <NewExpeditionDialog onCreated={setExpCode} />
       </div>
 
       <SectionCard
@@ -139,12 +140,34 @@ export default function ExpeditionsPage() {
         <Gantt legs={legs} today={today} />
       </SectionCard>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <LegPanel legs={legs} />
+    </div>
+  );
+}
+
+function LegPanel({ legs }: { legs: Leg[] }) {
+  if (!legs.length) {
+    return (
+      <SectionCard
+        title="Transport legs"
+        description="Scheduled sea, air and road movements for this expedition"
+      >
+        <EmptyState
+          title="No legs planned"
+          hint="Add a leg to open the season timeline."
+        />
+      </SectionCard>
+    );
+  }
+
+  return (
+    <Card className="[--card-spacing:0px]">
+      <div className="-mb-px grid grid-cols-1 [&>*]:border-b [&>*]:border-border sm:grid-cols-2 sm:[&>*:nth-child(odd)]:border-r sm:[&>*:last-child]:border-r-0">
         {legs.map((leg) => (
-          <LegCard key={leg.id} leg={leg} />
+          <LegCell key={leg.id} leg={leg} />
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -176,7 +199,7 @@ function Gantt({ legs, today }: { legs: Leg[]; today: Date }) {
           className="absolute top-0 -translate-x-1/2"
           style={{ left: `${nowPct}%` }}
         >
-          <span className="rounded bg-foreground px-1.5 py-0.5 text-[10px] font-medium text-background">
+          <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
             TODAY
           </span>
         </div>
@@ -204,7 +227,7 @@ function Gantt({ legs, today }: { legs: Leg[]; today: Date }) {
                   title={`${fmtDate(l.plannedDepart)} → ${fmtDate(l.plannedArrive)}`}
                 />
                 <div
-                  className="absolute top-0 h-full border-l border-dashed border-foreground/40"
+                  className="absolute top-0 h-full border-l border-dashed border-primary/40"
                   style={{ left: `${nowPct}%` }}
                 />
               </div>
@@ -216,7 +239,7 @@ function Gantt({ legs, today }: { legs: Leg[]; today: Date }) {
   );
 }
 
-function LegCard({ leg }: { leg: Leg }) {
+function LegCell({ leg }: { leg: Leg }) {
   const { data, stationById } = useStore();
   const from = stationById.get(leg.fromStationId);
   const to = stationById.get(leg.toStationId);
@@ -228,21 +251,20 @@ function LegCard({ leg }: { leg: Leg }) {
   const Icon = ["ship"].includes(asset?.type ?? "") ? Ship : Plane;
 
   return (
-    <SectionCard
-      title={
-        <span className="flex items-center gap-2">
-          {from?.shortName}{" "}
-          <ArrowRight className="size-3.5 text-muted-foreground" />{" "}
-          {to?.shortName}
-        </span>
-      }
-      description={
-        <span className="flex items-center gap-2">
-          <Icon className="size-3.5" /> {leg.mode} · {asset?.name}
-        </span>
-      }
-      action={<Pill variant="muted">{title(leg.status)}</Pill>}
-    >
+    <div className="flex min-w-0 flex-col gap-3 bg-card p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 space-y-0.5">
+          <p className="flex items-center gap-2 text-sm font-medium">
+            {from?.shortName}
+            <ArrowRight className="size-3.5 text-muted-foreground" />
+            {to?.shortName}
+          </p>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Icon className="size-3.5" /> {leg.mode} · {asset?.name}
+          </p>
+        </div>
+        <Pill variant="muted">{title(leg.status)}</Pill>
+      </div>
       <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
         <Field
           variant="plain"
@@ -332,7 +354,7 @@ function LegCard({ leg }: { leg: Leg }) {
           kg
         </span>
       </div>
-    </SectionCard>
+    </div>
   );
 }
 
@@ -367,7 +389,7 @@ function SelectField({
   );
 }
 
-function NewExpeditionDialog({ onCreated }: { onCreated: (id: ID) => void }) {
+function NewExpeditionDialog({ onCreated }: { onCreated: (code: string) => void }) {
   const { createExpedition } = useStore();
   const [open, setOpen] = React.useState(false);
   const [code, setCode] = React.useState("");
@@ -392,7 +414,7 @@ function NewExpeditionDialog({ onCreated }: { onCreated: (id: ID) => void }) {
       seasonStart: start,
       seasonEnd: end,
     });
-    onCreated(exp.id);
+    onCreated(exp.code);
     setOpen(false);
     setCode("");
     setName("");

@@ -145,7 +145,7 @@ export function Topbar({
             className={cn(
               "rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
               link === o.value
-                ? "bg-foreground text-background"
+                ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -173,7 +173,7 @@ export function Topbar({
               {critical > 0 ? (
                 <Badge
                   variant="outline"
-                  className="ml-0.5 h-4 border-transparent bg-foreground px-1 text-[10px] text-background"
+                  className="ml-0.5 h-4 border-transparent bg-primary px-1 text-[10px] text-primary-foreground"
                 >
                   {critical}
                 </Badge>
@@ -194,9 +194,9 @@ export function Topbar({
                   className={cn(
                     "size-1.5 rounded-full",
                     a.severity === "critical"
-                      ? "bg-foreground"
+                      ? "bg-primary"
                       : a.severity === "warning"
-                        ? "bg-foreground/50"
+                        ? "bg-primary/50"
                         : "bg-muted-foreground/50",
                   )}
                 />

@@ -296,10 +296,10 @@ export default function DashboardPage() {
                         max={100}
                         barClassName={cn(
                           r.risk === "CRITICAL"
-                            ? "bg-foreground"
+                            ? "bg-primary"
                             : r.risk === "WATCH"
-                              ? "bg-foreground/50"
-                              : "bg-foreground/25",
+                              ? "bg-primary/50"
+                              : "bg-primary/25",
                         )}
                       />
                       <span className="w-24 shrink-0 text-right text-[11px] text-muted-foreground tabular-nums">
@@ -323,7 +323,7 @@ export default function DashboardPage() {
                   href="/inventory"
                   className="flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors hover:bg-muted/50"
                 >
-                  <span className="flex size-2.5 rounded-full bg-foreground/40" />
+                  <span className="flex size-2.5 rounded-full bg-primary/40" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium">
                       {station.shortName}
@@ -335,12 +335,12 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   {critical > 0 ? (
-                    <Pill className="border-foreground/30 bg-foreground/10 text-foreground">
+                    <Pill className="border-primary/30 bg-primary/10 text-foreground">
                       {critical} crit
                     </Pill>
                   ) : null}
                   {watch > 0 ? (
-                    <Pill className="border-foreground/20 text-foreground/70">
+                    <Pill className="border-primary/20 text-foreground/70">
                       {watch} watch
                     </Pill>
                   ) : null}

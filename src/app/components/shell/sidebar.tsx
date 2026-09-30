@@ -44,7 +44,7 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
                 className={cn(
                   "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
                   active
-                    ? "bg-foreground text-background"
+                    ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
@@ -55,8 +55,8 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
                     className={cn(
                       "ml-auto rounded-full px-1.5 text-[10px] font-semibold",
                       active
-                        ? "bg-background/20 text-background"
-                        : "bg-foreground/15 text-foreground",
+                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        : "bg-primary/15 text-foreground",
                     )}
                   >
                     {criticalIncidents}
@@ -101,7 +101,7 @@ export function Sidebar({
       )}
     >
       <div className="flex h-14 items-center gap-2.5 border-b px-4">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
+        <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Snowflake className="size-4.5" />
         </span>
         <div className="leading-tight">
@@ -136,8 +136,8 @@ export function Sidebar({
               apiOnline === null
                 ? "bg-muted-foreground/50"
                 : apiOnline
-                  ? "bg-foreground"
-                  : "bg-foreground/40",
+                  ? "bg-primary"
+                  : "bg-primary/40",
             )}
           />
           {apiOnline === null

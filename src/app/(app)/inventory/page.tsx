@@ -18,6 +18,7 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import { useTabParam } from "@/lib/use-tab-param";
 import {
   Dialog,
   DialogContent,
@@ -41,7 +42,11 @@ export default function InventoryPage() {
   const { data, autonomy, nextResupplyDays, addInventoryTxn, stationById } =
     useStore();
   const stations = data.stations.filter((s) => s.type === "station");
-  const [stationId, setStationId] = React.useState<ID>(stations[0]?.id ?? "");
+  const [stationId, setStationId] = useTabParam(
+    "station",
+    stations[0]?.id ?? "",
+    (v) => stations.some((s) => s.id === v),
+  );
   const [selected, setSelected] = React.useState<AutonomyRow | null>(null);
 
   const station = stationById.get(stationId);
@@ -54,7 +59,7 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-4">
-      <Tabs value={stationId} onValueChange={(v) => setStationId(v as string)}>
+      <Tabs value={stationId} onValueChange={setStationId}>
         <TabsList>
           {stations.map((s) => (
             <TabsTrigger key={s.id} value={s.id}>
@@ -138,7 +143,7 @@ export default function InventoryPage() {
                     <span className="flex items-center gap-2 font-medium">
                       {r.name}
                       {r.critical ? (
-                        <Pill className="border-foreground/30 bg-foreground/10 text-foreground">
+                        <Pill className="border-primary/30 bg-primary/10 text-foreground">
                           critical
                         </Pill>
                       ) : null}
@@ -160,10 +165,10 @@ export default function InventoryPage() {
                         max={100}
                         barClassName={cn(
                           r.risk === "CRITICAL"
-                            ? "bg-foreground"
+                            ? "bg-chart-5"
                             : r.risk === "WATCH"
-                              ? "bg-foreground/50"
-                              : "bg-foreground/25",
+                              ? "bg-chart-3"
+                              : "bg-chart-1",
                         )}
                       />
                       <span className="w-24 shrink-0 text-right text-[11px] text-muted-foreground tabular-nums">
@@ -265,14 +270,14 @@ function ItemDialog({
           />
           <div className="mt-1 flex items-center gap-4 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1">
-              <i className="h-0.5 w-4 bg-foreground" /> Actual
+              <i className="h-0.5 w-4 bg-primary" /> Actual
             </span>
             <span className="flex items-center gap-1">
-              <i className="h-0.5 w-4 border-t border-dashed border-foreground/60" />{" "}
+              <i className="h-0.5 w-4 border-t border-dashed border-primary/60" />{" "}
               Forecast
             </span>
             <span className="flex items-center gap-1">
-              <i className="h-0.5 w-4 bg-foreground/40" /> 30-day safety line
+              <i className="h-0.5 w-4 bg-primary/40" /> 30-day safety line
             </span>
           </div>
         </div>

@@ -22,7 +22,7 @@ export function StageFlow({
             className={cn(
               "rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
               i <= activeIndex
-                ? "border-transparent bg-foreground text-background"
+                ? "border-transparent bg-primary text-primary-foreground"
                 : "border-border text-muted-foreground"
             )}
           >

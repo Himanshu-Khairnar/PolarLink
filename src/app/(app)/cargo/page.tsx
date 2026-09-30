@@ -25,6 +25,7 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import { useTabParam } from "@/lib/use-tab-param";
 import {
   Dialog,
   DialogContent,
@@ -87,7 +88,9 @@ const CAT_TONE: Record<CargoCategory, string> = {
 
 export default function CargoPage() {
   const { data, anomalies, stationById } = useStore();
-  const [cat, setCat] = React.useState<CargoCategory | "all">("all");
+  const [cat, setCat] = useTabParam("category", "all", (v) =>
+    (CATEGORIES as string[]).includes(v),
+  );
   const [selected, setSelected] = React.useState<ID | null>(null);
 
   const filtered = data.consignments.filter(
@@ -129,10 +132,7 @@ export default function CargoPage() {
         />
       </StatStrip>
 
-      <Tabs
-        value={cat}
-        onValueChange={(v) => setCat(v as CargoCategory | "all")}
-      >
+      <Tabs value={cat} onValueChange={setCat}>
         <TabsList className="flex-wrap">
           {CATEGORIES.map((c) => (
             <TabsTrigger key={c} value={c} className="capitalize">
@@ -321,7 +321,7 @@ function CustodyDialog({
                     scanConsignment(cs.id, nextState, nextStation, actor);
                     setVerify(null);
                   }}
-                  className="gap-1.5 bg-foreground text-background hover:bg-foreground/90"
+                  className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   <ScanLine /> Scan →{" "}
                   {nextState ? title(nextState) : "Complete"}
@@ -364,7 +364,7 @@ function CustodyDialog({
                     "mb-2 flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs",
                     verify.ok
                       ? "border-border bg-muted text-muted-foreground"
-                      : "border-foreground/40 bg-foreground/10 text-foreground",
+                      : "border-primary/40 bg-primary/10 text-foreground",
                   )}
                 >
                   {verify.ok ? (

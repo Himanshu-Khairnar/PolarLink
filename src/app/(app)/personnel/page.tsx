@@ -13,6 +13,7 @@ import { StationSelect } from "@/app/components/shared/station-select";
 import { Field } from "@/app/components/shared/field";
 import { Button } from "@/app/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import { useTabParam } from "@/lib/use-tab-param";
 import { Input } from "@/app/components/ui/input";
 import {
   Dialog,
@@ -36,19 +37,25 @@ import type { ID, Personnel } from "@/lib/types";
 const STATE_TONE: Record<Personnel["state"], string> = {
   NOMINATED: "bg-muted text-muted-foreground border-border",
   MEDICALLY_CLEARED: "bg-muted text-muted-foreground border-border",
-  TRAINED: "bg-foreground/5 text-foreground/70 border-foreground/15",
-  REPORTED_GOA: "bg-foreground/10 text-foreground/80 border-foreground/20",
-  IN_TRANSIT: "bg-foreground/15 text-foreground border-foreground/25",
-  AT_STATION: "bg-foreground text-background border-foreground",
+  TRAINED: "bg-primary/5 text-foreground/70 border-primary/15",
+  REPORTED_GOA: "bg-primary/10 text-foreground/80 border-primary/20",
+  IN_TRANSIT: "bg-primary/15 text-foreground border-primary/25",
+  AT_STATION: "bg-primary text-primary-foreground border-primary",
   DE_INDUCTED: "bg-muted text-muted-foreground border-border",
-  EVACUATED: "bg-transparent text-foreground border-foreground",
+  EVACUATED: "bg-transparent text-foreground border-primary",
 };
 
 export default function PersonnelPage() {
   const { data, stationById } = useStore();
   const stations = data.stations.filter((s) => s.type === "station");
-  const [filter, setFilter] = React.useState<"all" | "winter" | "summer" | ID>(
+  const [filter, setFilter] = useTabParam(
+    "filter",
     "all",
+    (v) =>
+      v === "all" ||
+      v === "winter" ||
+      v === "summer" ||
+      stations.some((s) => s.id === v),
   );
   const [selected, setSelected] = React.useState<Personnel | null>(null);
 
@@ -101,10 +108,7 @@ export default function PersonnelPage() {
           contentClassName="px-0"
         >
           <div className="px-4 pb-3">
-            <Tabs
-              value={filter}
-              onValueChange={(v) => setFilter(v as typeof filter)}
-            >
+            <Tabs value={filter} onValueChange={setFilter}>
               <TabsList className="flex-wrap">
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="summer">Summer</TabsTrigger>
@@ -148,7 +152,7 @@ export default function PersonnelPage() {
                     <Pill
                       className={cn(
                         p.team === "winter"
-                          ? "border-foreground/20 bg-foreground/10 text-foreground"
+                          ? "border-primary/20 bg-primary/10 text-foreground"
                           : "border-border bg-muted text-muted-foreground",
                       )}
                     >
@@ -315,7 +319,7 @@ function RollCall() {
               className={cn(
                 "flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition-colors",
                 isPresent
-                  ? "border-foreground/30 bg-foreground/5"
+                  ? "border-primary/30 bg-primary/5"
                   : "hover:bg-muted/50",
               )}
             >
@@ -323,7 +327,7 @@ function RollCall() {
                 className={cn(
                   "size-3.5 rounded-full border",
                   isPresent
-                    ? "border-foreground bg-foreground"
+                    ? "border-primary bg-primary"
                     : "border-muted-foreground",
                 )}
               />

@@ -16,7 +16,6 @@ import {
   StatStrip,
   Stat,
   Pill,
-  Bar,
 } from "@/app/components/shared/kit";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -33,8 +32,8 @@ import { cn } from "cn";
 import type { SyncPriority } from "@/lib/types";
 
 const PRIORITY_TONE: Record<SyncPriority, string> = {
-  P0: "border-foreground/40 bg-foreground/10 text-foreground",
-  P1: "border-foreground/20 bg-foreground/5 text-foreground/70",
+  P0: "border-primary/40 bg-primary/10 text-foreground",
+  P1: "border-primary/20 bg-primary/5 text-foreground/70",
   P2: "border-muted-foreground/30 bg-muted text-muted-foreground",
 };
 
@@ -127,7 +126,7 @@ export default function SyncPage() {
                     className={cn(
                       "flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
                       link === m
-                        ? "border-foreground/30 bg-muted"
+                        ? "border-primary/30 bg-muted"
                         : "hover:bg-muted/50",
                     )}
                   >
@@ -167,7 +166,7 @@ export default function SyncPage() {
               step={256}
               value={budget}
               onChange={(e) => setBudget(Number(e.target.value))}
-              className="mt-3 w-full accent-foreground"
+              className="mt-3 w-full accent-primary"
             />
             <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
               <span>256 B</span>
@@ -223,14 +222,29 @@ export default function SyncPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            {(["P0", "P1", "P2"] as SyncPriority[]).map((p) => {
-              const l = lane(p);
-              return (
-                <SectionCard
-                  key={p}
-                  title={
-                    <span className="flex items-center gap-2">
+          <SectionCard
+            title="Priority lanes"
+            description="Drain order — P0 always first, P2 waits for a wider window"
+            className="pb-0"
+            contentClassName="p-0"
+          >
+            <div className="grid grid-cols-1 gap-px border-t bg-border sm:grid-cols-3">
+              {(["P0", "P1", "P2"] as SyncPriority[]).map((p) => {
+                const l = lane(p);
+                return (
+                  <Stat
+                    key={p}
+                    label={
+                      p === "P0"
+                        ? "SOS / medical"
+                        : p === "P1"
+                          ? "Inventory / custody"
+                          : "Bulk / photos"
+                    }
+                    value={l.count}
+                    unit="queued"
+                    tone={p === "P0" ? "critical" : p === "P1" ? "watch" : "default"}
+                    icon={
                       <span
                         className={cn(
                           "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
@@ -239,32 +253,30 @@ export default function SyncPage() {
                       >
                         {p}
                       </span>
-                      {p === "P0"
-                        ? "SOS / medical"
-                        : p === "P1"
-                          ? "Inventory / custody"
-                          : "Bulk / photos"}
-                    </span>
-                  }
-                >
-                  <p className="font-heading text-xl font-semibold">
-                    {l.count}{" "}
-                    <span className="text-xs font-normal text-muted-foreground">
-                      queued
-                    </span>
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {compactBytes(l.bytes)}
-                  </p>
-                  <Bar
-                    value={l.bytes}
-                    max={Math.max(pendingBytes, 1)}
-                    className="mt-2"
+                    }
+                    hint={
+                      <span className="flex items-center gap-2">
+                        <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                          <span
+                            className="block h-full rounded-full bg-primary transition-[width] duration-500"
+                            style={{
+                              width: `${Math.max(
+                                (l.bytes / Math.max(pendingBytes, 1)) * 100,
+                                l.bytes ? 3 : 0,
+                              )}%`,
+                            }}
+                          />
+                        </span>
+                        <span className="tabular-nums">
+                          {compactBytes(l.bytes)}
+                        </span>
+                      </span>
+                    }
                   />
-                </SectionCard>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </SectionCard>
 
           <SectionCard
             title="Event log"
@@ -284,7 +296,7 @@ export default function SyncPage() {
                 <span className="relative inline-flex h-4 w-8 items-center rounded-full bg-muted">
                   <span
                     className={cn(
-                      "size-3 rounded-full bg-foreground transition-transform",
+                      "size-3 rounded-full bg-primary transition-transform",
                       outbound ? "translate-x-4" : "translate-x-0.5",
                     )}
                   />
@@ -335,11 +347,11 @@ export default function SyncPage() {
                     </TableCell>
                     <TableCell>
                       {s.appliedAt ? (
-                        <Pill className="border-foreground/20 bg-foreground/5 text-foreground/70">
+                        <Pill className="border-primary/20 bg-primary/5 text-foreground/70">
                           applied <RelativeTime value={s.appliedAt} />
                         </Pill>
                       ) : (
-                        <Pill className="border-foreground/30 bg-foreground/10 text-foreground">
+                        <Pill className="border-primary/30 bg-primary/10 text-foreground">
                           queued
                         </Pill>
                       )}

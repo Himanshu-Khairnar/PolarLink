@@ -17,23 +17,134 @@ function project(lat: number, lon: number) {
   return { x, y };
 }
 
+type LabelAnchor = "start" | "middle" | "end";
+type LabelBox = { x: number; y: number; w: number; h: number };
+type LabelPos = { dx: number; dy: number; anchor: LabelAnchor };
+
+const LABEL_CANDIDATES: LabelPos[] = [
+  { dx: 11, dy: -6, anchor: "start" },
+  { dx: 11, dy: 6, anchor: "start" },
+  { dx: 11, dy: -18, anchor: "start" },
+  { dx: 11, dy: 18, anchor: "start" },
+  { dx: 11, dy: 30, anchor: "start" },
+  { dx: -11, dy: -6, anchor: "end" },
+  { dx: -11, dy: 6, anchor: "end" },
+  { dx: -11, dy: 18, anchor: "end" },
+  { dx: 0, dy: -14, anchor: "middle" },
+  { dx: 0, dy: 22, anchor: "middle" },
+];
+
+const TYPE_ORDER = [
+  "station",
+  "hq",
+  "hub",
+  "port",
+  "airport",
+  "ship",
+  "foreign_station",
+];
+
+function overlaps(a: LabelBox, b: LabelBox) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function labelBox(px: number, py: number, w: number, c: LabelPos): LabelBox {
+  const x =
+    c.anchor === "start"
+      ? px + c.dx
+      : c.anchor === "end"
+        ? px + c.dx - w
+        : px + c.dx - w / 2;
+  return { x, y: py + c.dy - 11, w, h: 14 };
+}
+
+/** Greedy label placement so clustered stations (e.g. the Larsemann Hills
+ *  trio) never draw their names on top of each other. */
+function layoutLabels(stations: Station[]) {
+  const boxes: LabelBox[] = [];
+  for (const s of stations) {
+    const p = project(s.lat, s.lon);
+    boxes.push({ x: p.x - 9, y: p.y - 9, w: 18, h: 18 });
+  }
+  const a1 = project(15, 78);
+  boxes.push({ x: a1.x + 14, y: a1.y - 14, w: 220, h: 16 });
+  const a2 = project(-62, 20);
+  boxes.push({ x: a2.x, y: a2.y - 14, w: 310, h: 16 });
+
+  const result = new Map<string, LabelPos>();
+  const ordered = [...stations].sort(
+    (a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type),
+  );
+  for (const s of ordered) {
+    const p = project(s.lat, s.lon);
+    const w = s.shortName.length * 6.4 + 4;
+    let chosen = LABEL_CANDIDATES[0];
+    let box = labelBox(p.x, p.y, w, chosen);
+    for (const c of LABEL_CANDIDATES) {
+      const candidate = labelBox(p.x, p.y, w, c);
+      if (!boxes.some((b) => overlaps(candidate, b))) {
+        chosen = c;
+        box = candidate;
+        break;
+      }
+    }
+    boxes.push(box);
+    result.set(s.id, chosen);
+  }
+  return result;
+}
+
 const TYPE_TONE: Record<string, string> = {
-  station: "fill-foreground",
+  station: "fill-primary",
   foreign_station: "fill-muted-foreground",
-  hub: "fill-foreground/70",
-  port: "fill-foreground/45",
-  airport: "fill-foreground/45",
-  ship: "fill-foreground/60",
-  hq: "fill-foreground",
+  hub: "fill-primary/70",
+  port: "fill-primary/45",
+  airport: "fill-primary/45",
+  ship: "fill-primary/60",
+  hq: "fill-primary",
 };
 
 const STATUS_TONE: Record<string, string> = {
   planned: "stroke-muted-foreground/40",
-  loading: "stroke-foreground/40",
-  in_transit: "stroke-foreground/80",
+  loading: "stroke-primary/40",
+  in_transit: "stroke-primary/80",
   arrived: "stroke-muted-foreground",
-  delayed: "stroke-foreground",
+  delayed: "stroke-primary",
 };
+
+/** Coarse, stylised landmasses (lon, lat) so the field reads as a chart. */
+const LAND: [number, number][][] = [
+  [
+    [18, 36], [11, 37], [0, 36], [-6, 36], [-10, 30], [-17, 21], [-16, 14],
+    [-8, 5], [6, 4], [9, 4], [12, -5], [12, -16], [15, -28], [18, -34],
+    [25, -34], [32, -29], [35, -24], [40, -16], [41, -1], [43, 12], [51, 12],
+    [48, 6], [39, 4], [33, 15], [34, 28], [32, 31], [25, 32], [18, 36],
+  ],
+  [[35, 29], [43, 29], [57, 25], [51, 12], [43, 12], [35, 29]],
+  [
+    [68, 24], [61, 25], [57, 25], [68, 21], [73, 20], [77, 8], [80, 13],
+    [88, 22], [92, 22], [80, 27], [68, 24],
+  ],
+  [
+    [-10, 36], [0, 44], [10, 44], [12, 58], [30, 70], [40, 68], [30, 55],
+    [28, 45], [20, 41], [10, 36],
+  ],
+  [
+    [-25, -72], [-15, -70], [0, -70], [12, -69], [30, -68], [50, -66],
+    [70, -67], [76, -69], [90, -66], [100, -68], [100, -82], [-25, -82],
+  ],
+];
+
+function landPath(poly: [number, number][]) {
+  return (
+    poly
+      .map(([lon, lat], i) => {
+        const p = project(lat, lon);
+        return `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+      })
+      .join(" ") + " Z"
+  );
+}
 
 export function NetworkMap({
   stations,
@@ -50,28 +161,102 @@ export function NetworkMap({
 }) {
   const [hover, setHover] = React.useState<string | null>(null);
   const byId = React.useMemo(() => new Map(stations.map((s) => [s.id, s])), [stations]);
+  const labels = React.useMemo(() => layoutLabels(stations), [stations]);
+  const hoverStation = hover ? byId.get(hover) : undefined;
+  const hoverPoint = hoverStation ? project(hoverStation.lat, hoverStation.lon) : undefined;
 
   return (
     <div className={cn("relative overflow-hidden rounded-lg ring-1 ring-foreground/10", className)}>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
         <defs>
           <pattern id="mapgrid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M40 0H0V40" fill="none" className="stroke-foreground/5" strokeWidth="1" />
+            <path d="M40 0H0V40" fill="none" className="stroke-primary/5" strokeWidth="1" />
           </pattern>
           <radialGradient id="mapglow" cx="50%" cy="20%" r="80%">
             <stop offset="0%" stopColor="currentColor" stopOpacity="0.05" />
             <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
           </radialGradient>
+          <filter id="routeGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
         <rect width={W} height={H} fill="url(#mapgrid)" />
-        <rect width={W} height={H} fill="url(#mapglow)" className="text-foreground" />
+        <rect width={W} height={H} fill="url(#mapglow)" className="text-primary" />
+
+        {/* stylised landmasses */}
+        {LAND.map((poly, i) => (
+          <path
+            key={`land-${i}`}
+            d={landPath(poly)}
+            className="fill-primary/5 stroke-primary/15"
+            strokeWidth={1}
+            strokeLinejoin="round"
+          />
+        ))}
+
+        {/* graticule */}
+        {[-60, -30, 0, 30, 60].map((lat) => (
+          <line
+            key={`lat-${lat}`}
+            x1={0}
+            x2={W}
+            y1={project(lat, 0).y}
+            y2={project(lat, 0).y}
+            className={lat === 0 ? "stroke-border" : "stroke-border/60"}
+            strokeWidth={lat === 0 ? 1 : 0.5}
+          />
+        ))}
+        {[0, 30, 60, 90].map((lon) => (
+          <line
+            key={`lon-${lon}`}
+            x1={project(0, lon).x}
+            x2={project(0, lon).x}
+            y1={0}
+            y2={H}
+            className="stroke-border/60"
+            strokeWidth={0.5}
+          />
+        ))}
+        {[-66.5, -23.5, 23.5, 66.5].map((lat) => (
+          <line
+            key={`ref-${lat}`}
+            x1={0}
+            x2={W}
+            y1={project(lat, 0).y}
+            y2={project(lat, 0).y}
+            className="stroke-border/40"
+            strokeWidth={0.5}
+            strokeDasharray="1 4"
+          />
+        ))}
+        <line
+          x1={0}
+          x2={W}
+          y1={project(-60, 0).y}
+          y2={project(-60, 0).y}
+          className="stroke-primary/40"
+          strokeWidth={1}
+          strokeDasharray="2 6"
+        />
 
         {/* region annotations */}
-        <text x={project(15, 78).x + 14} y={project(15, 78).y} className="fill-muted-foreground/60 text-[14px]">
+        <text
+          x={project(15, 78).x + 14}
+          y={project(15, 78).y}
+          className="fill-muted-foreground/60 text-[13px] tracking-[0.25em]"
+        >
           INDIAN OCEAN ROUTE
         </text>
-        <text x={project(-62, 20).x} y={project(-62, 20).y} className="fill-muted-foreground/60 text-[14px]">
-          SOUTHERN OCEAN / SEA-ICE EDGE
+        <text
+          x={project(-62, 20).x}
+          y={project(-62, 20).y}
+          className="fill-muted-foreground/60 text-[13px] tracking-[0.25em]"
+        >
+          SEA-ICE EDGE · SOUTHERN OCEAN
         </text>
 
         {runtimeRoutes(legs, byId).map((r) => {
@@ -96,10 +281,12 @@ export function NetworkMap({
                 d={path}
                 fill="none"
                 strokeWidth={2}
+                strokeLinecap="round"
+                filter={active ? "url(#routeGlow)" : undefined}
                 className={cn(STATUS_TONE[r.status] ?? "stroke-muted-foreground/40", active && "dash")}
               />
               {active ? (
-                <circle r="4" className="fill-foreground">
+                <circle r="4" className="fill-primary">
                   <animateMotion dur="5s" repeatCount="indefinite" path={path} />
                 </circle>
               ) : null}
@@ -122,7 +309,8 @@ export function NetworkMap({
                   x2={p2.x}
                   y2={p2.y}
                   strokeWidth={3}
-                  className="stroke-foreground"
+                  strokeLinecap="round"
+                  className="stroke-primary"
                   strokeDasharray="6 4"
                 />
               );
@@ -134,6 +322,8 @@ export function NetworkMap({
           const isHover = hover === s.id;
           const isHighlight = highlightStationId === s.id;
           const onRoute = routeHops?.includes(s.id);
+          const label = labels.get(s.id) ?? LABEL_CANDIDATES[0];
+          const emphasized = isHighlight || onRoute;
           return (
             <g
               key={s.id}
@@ -141,37 +331,80 @@ export function NetworkMap({
               onMouseLeave={() => setHover(null)}
               className="cursor-pointer"
             >
-              {isHighlight || onRoute ? (
-                <circle cx={p.x} cy={p.y} r="14" className="fill-foreground/20 pulse-ring" />
+              {emphasized ? (
+                <circle cx={p.x} cy={p.y} r="14" className="fill-primary/20 pulse-ring" />
               ) : null}
-              <circle cx={p.x} cy={p.y} r={isHover ? 8 : 6} className={cn(TYPE_TONE[s.type] ?? "fill-foreground", "stroke-background")} strokeWidth={2} />
+              {s.type === "ship" ? (
+                <rect
+                  x={p.x - 5}
+                  y={p.y - 5}
+                  width={10}
+                  height={10}
+                  rx={1.5}
+                  transform={`rotate(45 ${p.x} ${p.y})`}
+                  className="fill-primary/60 stroke-background"
+                  strokeWidth={2}
+                />
+              ) : (
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={isHover ? 8 : 6}
+                  className={cn(TYPE_TONE[s.type] ?? "fill-primary", "stroke-background")}
+                  strokeWidth={2}
+                />
+              )}
               <text
-                x={p.x + 11}
-                y={p.y + 4}
-                className={cn("text-[13px]", isHighlight || onRoute ? "fill-foreground font-semibold" : "fill-foreground font-medium")}
+                x={p.x + label.dx}
+                y={p.y + label.dy}
+                textAnchor={label.anchor}
+                strokeWidth={3}
+                className={cn(
+                  "stroke-background [paint-order:stroke] text-[12px]",
+                  emphasized
+                    ? "fill-primary font-semibold"
+                    : "fill-foreground font-medium",
+                )}
               >
                 {s.shortName}
               </text>
-              {isHover ? (
-                <g>
-                  <rect x={p.x + 10} y={p.y + 10} width={Math.max(150, s.name.length * 6.5)} height={42} rx={6} className="fill-popover stroke-border" strokeWidth={1} />
-                  <text x={p.x + 20} y={p.y + 28} className="fill-foreground text-[12px] font-semibold">
-                    {s.name}
-                  </text>
-                  <text x={p.x + 20} y={p.y + 44} className="fill-muted-foreground text-[11px]">
-                    {s.type.replaceAll("_", " ")} · cap {s.capacity}
-                  </text>
-                </g>
-              ) : null}
             </g>
           );
         })}
+
+        {hoverStation && hoverPoint
+          ? (() => {
+              const tw = Math.max(150, hoverStation.name.length * 6.5);
+              const flip = hoverPoint.x + 10 + tw > W - 8;
+              const tx = flip ? hoverPoint.x - 10 - tw : hoverPoint.x + 10;
+              const ty = Math.min(hoverPoint.y + 10, H - 56);
+              return (
+                <g className="pointer-events-none">
+                  <rect
+                    x={tx}
+                    y={ty}
+                    width={tw}
+                    height={46}
+                    rx={8}
+                    className="fill-popover stroke-border"
+                    strokeWidth={1}
+                  />
+                  <text x={tx + 10} y={ty + 20} className="fill-foreground text-[12px] font-semibold">
+                    {hoverStation.name}
+                  </text>
+                  <text x={tx + 10} y={ty + 36} className="fill-muted-foreground text-[11px]">
+                    {hoverStation.type.replaceAll("_", " ")} · cap {hoverStation.capacity}
+                  </text>
+                </g>
+              );
+            })()
+          : null}
       </svg>
-      <div className="pointer-events-none absolute right-3 bottom-3 flex flex-wrap gap-3 rounded-md bg-background/70 px-3 py-1.5 text-[10px] text-muted-foreground backdrop-blur">
-        <span className="flex items-center gap-1"><i className="size-2 rounded-full bg-foreground" /> Station</span>
-        <span className="flex items-center gap-1"><i className="size-2 rounded-full bg-muted-foreground" /> Foreign / partner</span>
-        <span className="flex items-center gap-1"><i className="size-2 rounded-full bg-foreground/70" /> Gateway hub</span>
-        <span className="flex items-center gap-1"><i className="size-2 rounded-full bg-foreground/50" /> Vessel</span>
+      <div className="pointer-events-none absolute top-3 right-3 flex flex-wrap gap-x-3 gap-y-1 rounded-lg bg-background/80 px-3 py-2 text-[10px] text-muted-foreground ring-1 ring-border backdrop-blur">
+        <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full bg-primary ring-2 ring-background" /> Station</span>
+        <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full bg-muted-foreground ring-2 ring-background" /> Foreign / partner</span>
+        <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full bg-primary/70 ring-2 ring-background" /> Gateway hub</span>
+        <span className="flex items-center gap-1.5"><i className="size-2.5 rotate-45 rounded-[2px] bg-primary/60 ring-2 ring-background" /> Vessel</span>
       </div>
     </div>
   );
