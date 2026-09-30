@@ -110,15 +110,7 @@ export function Sidebar({
           </p>
           <p className="text-[10px] text-muted-foreground">NCPOR · MoES</p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="ml-auto text-muted-foreground"
-          onClick={onClose}
-          aria-label="Close sidebar"
-        >
-          <PanelLeftClose className="size-4" />
-        </Button>
+   
       </div>
       <NavList />
       <div className="border-t p-3">
