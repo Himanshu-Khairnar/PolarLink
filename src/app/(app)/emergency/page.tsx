@@ -56,9 +56,20 @@ const SEV_TONE: Record<string, string> = {
 };
 
 export default function EmergencyPage() {
-  const { data, stationById, raiseIncident, advanceIncident } = useStore();
+  const {
+    data,
+    stationById,
+    raiseIncident,
+    advanceIncident,
+    inScope,
+    scope,
+  } = useStore();
   const stations = data.stations;
-  const [origin, setOrigin] = React.useState<ID>("st-maitri");
+  const [origin, setOrigin] = React.useState<ID>(
+    scope !== "all" ? scope : "st-maitri",
+  );
+
+  const scopedIncidents = data.incidents.filter((i) => inScope(i.stationId));
 
   const edges = React.useMemo(
     () => buildEvacEdges(stations, data.legs),
@@ -70,10 +81,10 @@ export default function EmergencyPage() {
   );
   const [activeRoute, setActiveRoute] = React.useState<string | null>(null);
 
-  const openIncidents = data.incidents.filter(
+  const openIncidents = scopedIncidents.filter(
     (i) => i.status !== "RESOLVED" && i.status !== "REVIEWED",
   );
-  const medicalIncidents = data.incidents.filter((i) => i.type === "medical");
+  const medicalIncidents = scopedIncidents.filter((i) => i.type === "medical");
 
   return (
     <div className="space-y-4">
@@ -127,7 +138,7 @@ export default function EmergencyPage() {
             }
           >
             <div className="divide-y border-t">
-              {data.incidents.map((inc) => (
+              {scopedIncidents.map((inc) => (
                 <IncidentRow
                   key={inc.id}
                   incident={inc}
@@ -246,7 +257,7 @@ function SosButton({
 }: {
   onRaise: ReturnType<typeof useStore>["raiseIncident"];
 }) {
-  const { data } = useStore();
+  const { data, can } = useStore();
   const [open, setOpen] = React.useState(false);
   const [stationId, setStationId] = React.useState<ID>("st-bharati");
   const [type, setType] = React.useState<Incident["type"]>("medical");
@@ -258,7 +269,20 @@ function SosButton({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm" className="gap-1.5" />}>
+      <DialogTrigger
+        render={
+          <Button
+            size="sm"
+            className="gap-1.5"
+            disabled={!can("emergency.raise")}
+            title={
+              can("emergency.raise")
+                ? undefined
+                : "Your role cannot raise an incident"
+            }
+          />
+        }
+      >
         <Siren /> Raise SOS
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -359,7 +383,7 @@ function IncidentRow({
   incident: Incident;
   onAdvance: ReturnType<typeof useStore>["advanceIncident"];
 }) {
-  const { data, stationById } = useStore();
+  const { data, stationById, can } = useStore();
   const idx = INCIDENT_FLOW.indexOf(incident.status);
   const next =
     idx >= 0 && idx < INCIDENT_FLOW.length - 1 ? INCIDENT_FLOW[idx + 1] : null;
@@ -457,7 +481,12 @@ function IncidentRow({
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
-              disabled={!next}
+              disabled={!next || !can("emergency.advance")}
+              title={
+                can("emergency.advance")
+                  ? undefined
+                  : "Your role cannot advance the incident lifecycle"
+              }
               onClick={() =>
                 next &&
                 onAdvance(

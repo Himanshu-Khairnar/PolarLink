@@ -40,16 +40,22 @@ const CONDITION_TONE: Record<Asset["condition"], string> = {
 };
 
 export default function AssetsPage() {
-  const { data, stationById, today } = useStore();
+  const { data, stationById, today, inScope, can } = useStore();
   const [selected, setSelected] = React.useState<Asset | null>(null);
   const [filter, setFilter] = React.useState<"all" | "attention" | "due">(
     "all",
   );
 
-  const attention = data.groundAssets.filter(
+  const scopedAssets = data.groundAssets.filter((a) => inScope(a.stationId));
+  const scopedIds = new Set(scopedAssets.map((a) => a.id));
+  const scopedMaintenance = data.maintenance.filter((m) =>
+    scopedIds.has(m.assetId),
+  );
+
+  const attention = scopedAssets.filter(
     (a) => a.condition === "down" || a.condition === "needs_attention",
   );
-  const dueSoon = data.groundAssets.filter(
+  const dueSoon = scopedAssets.filter(
     (a) => Date.parse(a.nextMaintenance) - today.getTime() < 7 * 86400000,
   );
   const visible =
@@ -57,14 +63,14 @@ export default function AssetsPage() {
       ? attention
       : filter === "due"
         ? dueSoon
-        : data.groundAssets;
+        : scopedAssets;
 
   return (
     <div className="space-y-4">
       <StatStrip>
         <Stat
           label="Tracked assets"
-          value={data.groundAssets.length}
+          value={scopedAssets.length}
           icon={<Wrench className="size-4" />}
           hint="Across 3 stations"
           onClick={() => setFilter("all")}
@@ -102,7 +108,7 @@ export default function AssetsPage() {
         />
         <Stat
           label="Service logs"
-          value={data.maintenance.length}
+          value={scopedMaintenance.length}
           tone="ok"
           icon={<Wrench className="size-4" />}
           hint="Audit-ready"
@@ -118,7 +124,7 @@ export default function AssetsPage() {
         <p className="text-xs text-muted-foreground">
           Showing{" "}
           <span className="font-medium text-foreground">{visible.length}</span>{" "}
-          of {data.groundAssets.length} assets
+          of {scopedAssets.length} assets
           {filter !== "all" ? (
             <span>
               {" "}
@@ -203,6 +209,12 @@ export default function AssetsPage() {
                 <Button
                   variant="outline"
                   size="xs"
+                  disabled={!can("assets.service")}
+                  title={
+                    can("assets.service")
+                      ? undefined
+                      : "Your role cannot log maintenance"
+                  }
                   onClick={() => setSelected(a)}
                 >
                   Log service
@@ -230,7 +242,7 @@ export default function AssetsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.maintenance.map((m) => {
+              {scopedMaintenance.map((m) => {
                 const asset = data.groundAssets.find((a) => a.id === m.assetId);
                 return (
                   <TableRow key={m.id}>

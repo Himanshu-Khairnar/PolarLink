@@ -59,7 +59,7 @@ const LINK_META: Record<
 };
 
 export default function SyncPage() {
-  const { data, link, setLink, drainSync } = useStore();
+  const { data, link, setLink, drainSync, can } = useStore();
   const [budget, setBudget] = React.useState(4096);
   const [outbound, setOutbound] = React.useState(true);
 
@@ -177,7 +177,12 @@ export default function SyncPage() {
                 size="sm"
                 className="flex-1 gap-1.5"
                 onClick={() => drainSync(budget)}
-                disabled={!pending.length}
+                disabled={!pending.length || !can("sync.flush")}
+                title={
+                  can("sync.flush")
+                    ? undefined
+                    : "Your role cannot flush the sync lanes"
+                }
               >
                 <RefreshCw /> Flush lanes
               </Button>

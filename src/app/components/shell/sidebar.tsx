@@ -7,13 +7,12 @@ import { cn } from "cn";
 import { NAV } from "@/app/components/shell/nav";
 import { useStore } from "@/lib/store";
 import { LiveDot } from "@/app/components/shared/kit";
-import { Button } from "@/app/components/ui/button";
 import { pingBackend } from "@/lib/api";
-import { PanelLeftClose, ShieldCheck, Snowflake } from "lucide-react";
+import { ShieldCheck, Snowflake } from "lucide-react";
 
 export function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const { data } = useStore();
+  const { data, canPage } = useStore();
   const criticalIncidents = data.incidents.filter(
     (i) =>
       (i.severity === "critical" || i.severity === "high") &&
@@ -28,52 +27,55 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4 no-scrollbar">
-      {groups.map((group) => (
-        <div key={group} className="space-y-1">
-          <p className="px-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
-            {group}
-          </p>
-          {NAV.filter((n) => n.group === group).map((item) => {
-            const active = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onNavigate}
-                className={cn(
-                  "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                <Icon className="size-4 shrink-0" />
-                <span className="leading-snug">{item.label}</span>
-                {item.href === "/emergency" && criticalIncidents > 0 ? (
-                  <span
-                    className={cn(
-                      "ml-auto rounded-full px-1.5 text-[10px] font-semibold",
-                      active
-                        ? "bg-primary-foreground/20 text-primary-foreground"
-                        : "bg-primary/15 text-foreground",
-                    )}
-                  >
-                    {criticalIncidents}
-                  </span>
-                ) : null}
-              </Link>
-            );
-          })}
-        </div>
-      ))}
+      {groups.map((group) => {
+        const items = NAV.filter((n) => n.group === group && canPage(n.href));
+        if (!items.length) return null;
+        return (
+          <div key={group} className="space-y-1">
+            <p className="px-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
+              {group}
+            </p>
+            {items.map((item) => {
+              const active = pathname === item.href;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onNavigate}
+                  className={cn(
+                    "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  <Icon className="size-4 shrink-0" />
+                  <span className="leading-snug">{item.label}</span>
+                  {item.href === "/emergency" && criticalIncidents > 0 ? (
+                    <span
+                      className={cn(
+                        "ml-auto rounded-full px-1.5 text-[10px] font-semibold",
+                        active
+                          ? "bg-primary-foreground/20 text-primary-foreground"
+                          : "bg-primary/15 text-foreground",
+                      )}
+                    >
+                      {criticalIncidents}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 export function Sidebar({
   open = true,
-  onClose,
 }: {
   open?: boolean;
   onClose?: () => void;

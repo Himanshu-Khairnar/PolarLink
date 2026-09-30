@@ -20,6 +20,8 @@ import { Badge } from "@/app/components/ui/badge";
 import {
   Bell,
   ChevronDown,
+  Lock,
+  LogOut,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
@@ -92,6 +94,7 @@ export function Topbar({
     stationById,
     role,
     setRole,
+    logout,
     scope,
     setScope,
     link,
@@ -213,33 +216,45 @@ export function Topbar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <Radio className="hidden sm:block" />
-              <span className="hidden max-w-28 truncate sm:inline">
-                {scope === "all"
-                  ? "All stations"
-                  : stationById.get(scope)?.shortName}
-              </span>
-              <ChevronDown />
-            </Button>
-          }
-        />
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Station scope</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setScope("all")}>
-            All stations
-          </DropdownMenuItem>
-          {scopedStations.map((s) => (
-            <DropdownMenuItem key={s.id} onClick={() => setScope(s.id)}>
-              {s.name}
+      {ROLES[role].scope === "all" ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Radio className="hidden sm:block" />
+                <span className="hidden max-w-28 truncate sm:inline">
+                  {scope === "all"
+                    ? "All stations"
+                    : stationById.get(scope)?.shortName}
+                </span>
+                <ChevronDown />
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Station scope</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setScope("all")}>
+              All stations
             </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            {scopedStations.map((s) => (
+              <DropdownMenuItem key={s.id} onClick={() => setScope(s.id)}>
+                {s.name}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <div
+          className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs"
+          title="Scope is fixed by your role"
+        >
+          <Lock className="size-3.5 text-muted-foreground" />
+          <span className="max-w-28 truncate text-muted-foreground">
+            {stationById.get(scope)?.shortName ?? "Scoped"}
+          </span>
+        </div>
+      )}
 
       <DropdownMenu>
         <DropdownMenuTrigger
@@ -267,6 +282,10 @@ export function Topbar({
               {ROLES[r].label}
             </DropdownMenuItem>
           ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={logout} className="gap-2">
+            <LogOut className="size-3.5" /> Sign out
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

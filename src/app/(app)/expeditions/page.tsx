@@ -62,7 +62,7 @@ const LEG_STATUS_TONE: Record<string, string> = {
 };
 
 export default function ExpeditionsPage() {
-  const { data, today } = useStore();
+  const { data, today, inScope, can } = useStore();
   const [expCode, setExpCode] = useTabParam(
     "expedition",
     data.expeditions[0]?.code ?? "",
@@ -81,7 +81,11 @@ export default function ExpeditionsPage() {
     );
   }
 
-  const legs = data.legs.filter((l) => l.expeditionId === exp.id);
+  const legs = data.legs.filter(
+    (l) =>
+      l.expeditionId === exp.id &&
+      (inScope(l.fromStationId) || inScope(l.toStationId)),
+  );
 
   return (
     <div className="space-y-4">
@@ -110,11 +114,16 @@ export default function ExpeditionsPage() {
           label="Cargo moved"
           value={Math.round(
             data.consignments
-              .filter((c) => c.expeditionId === exp.id)
+              .filter(
+                (c) =>
+                  c.expeditionId === exp.id &&
+                  (inScope(c.originStationId) ||
+                    inScope(c.destinationStationId)),
+              )
               .reduce((a, b) => a + b.weightKg, 0) / 1000,
           )}
           unit="tonnes"
-          hint={`${data.consignments.filter((c) => c.expeditionId === exp.id).length} consignments`}
+          hint={`${data.consignments.filter((c) => c.expeditionId === exp.id && (inScope(c.originStationId) || inScope(c.destinationStationId))).length} consignments`}
           icon={<Package className="size-4" />}
         />
       </StatStrip>
@@ -129,13 +138,19 @@ export default function ExpeditionsPage() {
             ))}
           </TabsList>
         </Tabs>
-        <NewExpeditionDialog onCreated={setExpCode} />
+        {can("expeditions.create") ? (
+          <NewExpeditionDialog onCreated={setExpCode} />
+        ) : null}
       </div>
 
       <SectionCard
         title="Season timeline"
         description={`${exp.code} · ${fmtDate(exp.seasonStart)} → ${fmtDate(exp.seasonEnd)}`}
-        action={<AddLegDialog expeditionId={exp.id} />}
+        action={
+          can("expeditions.addLeg") ? (
+            <AddLegDialog expeditionId={exp.id} />
+          ) : undefined
+        }
       >
         <Gantt legs={legs} today={today} />
       </SectionCard>

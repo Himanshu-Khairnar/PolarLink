@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Package,
+  Plus,
   ScanLine,
   ShieldCheck,
   Truck,
@@ -32,6 +33,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/app/components/ui/dialog";
 import {
   Table,
@@ -43,7 +45,12 @@ import {
 } from "@/app/components/ui/table";
 import { fmtDateTime, title } from "@/lib/format";
 import { cn } from "cn";
-import type { ConsignmentStatus, CargoCategory, ID } from "@/lib/types";
+import type {
+  CargoCategory,
+  ConsignmentStatus,
+  ID,
+  SyncPriority,
+} from "@/lib/types";
 
 const FLOW: ConsignmentStatus[] = [
   "PLANNED",
@@ -87,13 +94,24 @@ const CAT_TONE: Record<CargoCategory, string> = {
 };
 
 export default function CargoPage() {
-  const { data, anomalies, stationById } = useStore();
+  const { data, anomalies, stationById, inScope, can } = useStore();
   const [cat, setCat] = useTabParam("category", "all", (v) =>
     (CATEGORIES as string[]).includes(v),
   );
   const [selected, setSelected] = React.useState<ID | null>(null);
 
-  const filtered = data.consignments.filter(
+  const scoped = data.consignments.filter(
+    (c) => inScope(c.originStationId) || inScope(c.destinationStationId),
+  );
+  const scopedIds = new Set(scoped.map((c) => c.id));
+  const scopedCustody = data.custody.filter((c) =>
+    scopedIds.has(c.consignmentId),
+  );
+  const scopedAnomalies = anomalies.filter((a) =>
+    scopedIds.has(a.consignmentId),
+  );
+
+  const filtered = scoped.filter(
     (c) => cat === "all" || c.category === cat,
   );
 
@@ -102,14 +120,14 @@ export default function CargoPage() {
       <StatStrip>
         <Stat
           label="Consignments"
-          value={data.consignments.length}
+          value={scoped.length}
           icon={<Package className="size-4" />}
           hint="46-ISEA + Arctic"
         />
         <Stat
           label="In transit"
           value={
-            data.consignments.filter((c) =>
+            scoped.filter((c) =>
               ["IN_TRANSIT_TO_PORT", "AT_HUB", "LOADED"].includes(c.status),
             ).length
           }
@@ -118,29 +136,32 @@ export default function CargoPage() {
         />
         <Stat
           label="Custody events"
-          value={data.custody.length}
+          value={scopedCustody.length}
           icon={<ScanLine className="size-4" />}
           hint="Hash-chained scans"
           tone="ok"
         />
         <Stat
           label="Dwell anomalies"
-          value={anomalies.length}
+          value={scopedAnomalies.length}
           icon={<AlertTriangle className="size-4" />}
-          tone={anomalies.length ? "watch" : "ok"}
+          tone={scopedAnomalies.length ? "watch" : "ok"}
           hint="Robust z-score > 3.5"
         />
       </StatStrip>
 
-      <Tabs value={cat} onValueChange={setCat}>
-        <TabsList className="flex-wrap">
-          {CATEGORIES.map((c) => (
-            <TabsTrigger key={c} value={c} className="capitalize">
-              {c}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Tabs value={cat} onValueChange={setCat}>
+          <TabsList className="flex-wrap">
+            {CATEGORIES.map((c) => (
+              <TabsTrigger key={c} value={c} className="capitalize">
+                {c}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        {can("cargo.create") ? <NewConsignmentDialog /> : null}
+      </div>
 
       <SectionCard
         title="Cargo register"
@@ -216,7 +237,7 @@ function CustodyDialog({
   consignmentId: ID | null;
   onClose: () => void;
 }) {
-  const { data, stationById, scanConsignment, verifyChain, tamperCustody } =
+  const { data, stationById, scanConsignment, verifyChain, tamperCustody, can } =
     useStore();
   const cs = data.consignments.find((c) => c.id === consignmentId) ?? null;
   const [actor, setActor] = React.useState("Field operator");
@@ -315,7 +336,12 @@ function CustodyDialog({
                 </div>
                 <Button
                   size="sm"
-                  disabled={!nextState}
+                  disabled={!nextState || !can("cargo.scan")}
+                  title={
+                    can("cargo.scan")
+                      ? undefined
+                      : "Your role cannot scan custody events"
+                  }
                   onClick={() => {
                     if (!nextState) return;
                     scanConsignment(cs.id, nextState, nextStation, actor);
@@ -339,22 +365,26 @@ function CustodyDialog({
                   Custody ledger
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    onClick={() => setVerify(verifyChain(cs.id))}
-                    className="gap-1"
-                  >
-                    <ShieldCheck /> Verify
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => tamperCustody(cs.id)}
-                    className="gap-1 text-foreground/70"
-                  >
-                    <AlertTriangle /> Tamper test
-                  </Button>
+                  {can("cargo.verify") ? (
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() => setVerify(verifyChain(cs.id))}
+                      className="gap-1"
+                    >
+                      <ShieldCheck /> Verify
+                    </Button>
+                  ) : null}
+                  {can("cargo.tamper") ? (
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => tamperCustody(cs.id)}
+                      className="gap-1 text-foreground/70"
+                    >
+                      <AlertTriangle /> Tamper test
+                    </Button>
+                  ) : null}
                 </div>
               </div>
 
@@ -413,6 +443,235 @@ function CustodyDialog({
               </div>
             </div>
           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const ALL_CATEGORIES: CargoCategory[] = [
+  "food",
+  "fuel",
+  "medical",
+  "spares",
+  "scientific",
+  "waste",
+];
+
+const SELECT_CLS =
+  "mt-1 h-8 w-full rounded-md border bg-transparent px-2 text-xs outline-none focus-visible:border-ring";
+
+function NewConsignmentDialog() {
+  const { data, createConsignment } = useStore();
+  const [open, setOpen] = React.useState(false);
+  const [description, setDescription] = React.useState("");
+  const [category, setCategory] = React.useState<CargoCategory>("food");
+  const [origin, setOrigin] = React.useState("st-hq");
+  const [destination, setDestination] = React.useState(
+    data.stations.find((s) => s.type === "station")?.id ?? "st-maitri",
+  );
+  const [expeditionId, setExpeditionId] = React.useState(
+    data.expeditions[0]?.id ?? "",
+  );
+  const [weightKg, setWeightKg] = React.useState("100");
+  const [volumeM3, setVolumeM3] = React.useState("");
+  const [priority, setPriority] = React.useState<SyncPriority>("P1");
+  const [hazmatClass, setHazmatClass] = React.useState("");
+  const [tempReq, setTempReq] = React.useState("");
+
+  const valid =
+    description.trim() !== "" &&
+    origin !== destination &&
+    (Number(weightKg) || 0) > 0 &&
+    expeditionId !== "";
+
+  const submit = () => {
+    if (!valid) return;
+    createConsignment({
+      description: description.trim(),
+      category,
+      originStationId: origin,
+      destinationStationId: destination,
+      expeditionId,
+      weightKg: Number(weightKg) || 0,
+      volumeM3: volumeM3 === "" ? undefined : Number(volumeM3) || 0,
+      priority,
+      hazmatClass: hazmatClass.trim() || undefined,
+      tempReq: tempReq.trim() || undefined,
+    });
+    setOpen(false);
+    setDescription("");
+    setCategory("food");
+    setOrigin("st-hq");
+    setDestination(
+      data.stations.find((s) => s.type === "station")?.id ?? "st-maitri",
+    );
+    setExpeditionId(data.expeditions[0]?.id ?? "");
+    setWeightKg("100");
+    setVolumeM3("");
+    setPriority("P1");
+    setHazmatClass("");
+    setTempReq("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button size="sm" className="gap-1.5" />}>
+        <Plus /> New consignment
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>New consignment</DialogTitle>
+          <DialogDescription>
+            Registers cargo and opens a hash-chained custody record at origin.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-[10px] text-muted-foreground uppercase">
+              Description
+            </Label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Insulin cold-chain box"
+              className="mt-1 h-8 text-xs"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Category
+              </Label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as CargoCategory)}
+                className={SELECT_CLS}
+              >
+                {ALL_CATEGORIES.map((c) => (
+                  <option key={c} value={c} className="capitalize">
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Expedition
+              </Label>
+              <select
+                value={expeditionId}
+                onChange={(e) => setExpeditionId(e.target.value)}
+                className={SELECT_CLS}
+              >
+                {data.expeditions.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.code}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Origin
+              </Label>
+              <select
+                value={origin}
+                onChange={(e) => setOrigin(e.target.value)}
+                className={SELECT_CLS}
+              >
+                {data.stations.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.shortName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Destination
+              </Label>
+              <select
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                className={SELECT_CLS}
+              >
+                {data.stations.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.shortName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Weight (kg)
+              </Label>
+              <Input
+                value={weightKg}
+                onChange={(e) => setWeightKg(e.target.value)}
+                type="number"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Volume (m³)
+              </Label>
+              <Input
+                value={volumeM3}
+                onChange={(e) => setVolumeM3(e.target.value)}
+                type="number"
+                placeholder="auto"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Priority
+              </Label>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as SyncPriority)}
+                className={SELECT_CLS}
+              >
+                <option value="P0">P0</option>
+                <option value="P1">P1</option>
+                <option value="P2">P2</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Hazmat class (optional)
+              </Label>
+              <Input
+                value={hazmatClass}
+                onChange={(e) => setHazmatClass(e.target.value)}
+                placeholder="Class 3 (flammable liquid)"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Temp requirement (optional)
+              </Label>
+              <Input
+                value={tempReq}
+                onChange={(e) => setTempReq(e.target.value)}
+                placeholder="2-8 C"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+          </div>
+          <Button className="w-full" disabled={!valid} onClick={submit}>
+            Create consignment
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

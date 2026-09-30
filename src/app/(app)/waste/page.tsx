@@ -56,14 +56,12 @@ const CAT_BG: Record<WasteEntry["category"], string> = {
 };
 
 export default function WastePage() {
-  const { data, setWasteStage, stationById } = useStore();
+  const { data, setWasteStage, stationById, inScope, can } = useStore();
 
-  const wasteStations = React.useMemo(
-    () =>
-      data.stations.filter(
-        (s) => s.type === "station" && data.waste.some((w) => w.stationId === s.id),
-      ),
-    [data.stations, data.waste],
+  const scopedWaste = data.waste.filter((w) => inScope(w.stationId));
+
+  const wasteStations = data.stations.filter(
+    (s) => s.type === "station" && scopedWaste.some((w) => w.stationId === s.id),
   );
 
   const [stationId, setStationId] = useTabParam(
@@ -72,13 +70,10 @@ export default function WastePage() {
     (v) => v === "all" || wasteStations.some((s) => s.id === v),
   );
 
-  const entries = React.useMemo(
-    () =>
-      stationId === "all"
-        ? data.waste
-        : data.waste.filter((w) => w.stationId === stationId),
-    [data.waste, stationId],
-  );
+  const entries =
+    stationId === "all"
+      ? scopedWaste
+      : scopedWaste.filter((w) => w.stationId === stationId);
 
   const total = entries.reduce((a, b) => a + b.qtyKg, 0);
   const returned = entries
@@ -222,6 +217,12 @@ export default function WastePage() {
                                   variant="outline"
                                   size="xs"
                                   className="w-full"
+                                  disabled={!can("waste.advance")}
+                                  title={
+                                    can("waste.advance")
+                                      ? undefined
+                                      : "Your role cannot advance waste stages"
+                                  }
                                   onClick={() =>
                                     setWasteStage(w.id, STAGES[idx + 1])
                                   }

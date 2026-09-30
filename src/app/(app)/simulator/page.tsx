@@ -15,7 +15,7 @@ import { monteCarloSeason, simulateDelay } from "@/lib/engine";
 import { fmtDate } from "@/lib/format";
 
 export default function SimulatorPage() {
-  const { data, autonomy, stationById } = useStore();
+  const { data, autonomy, stationById, can } = useStore();
   const [legId, setLegId] = React.useState(
     data.legs[2]?.id ?? data.legs[0]?.id ?? "",
   );
@@ -80,7 +80,16 @@ export default function SimulatorPage() {
               <span>+30 d</span>
             </div>
           </div>
-          <Button onClick={run} className="gap-1.5">
+          <Button
+            onClick={run}
+            className="gap-1.5"
+            disabled={!can("simulator.run")}
+            title={
+              can("simulator.run")
+                ? undefined
+                : "Your role cannot run season simulations"
+            }
+          >
             <Play /> Run simulation
           </Button>
         </div>

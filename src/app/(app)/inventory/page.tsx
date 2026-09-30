@@ -1,7 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Boxes, CalendarClock, FlaskConical, TrendingDown } from "lucide-react";
+import {
+  Boxes,
+  CalendarClock,
+  FlaskConical,
+  Plus,
+  TrendingDown,
+} from "lucide-react";
 import { useStore } from "@/lib/store";
 import { consumptionSeries } from "@/lib/data/seed";
 import {
@@ -25,6 +31,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/app/components/ui/dialog";
 import {
   Table,
@@ -36,12 +43,24 @@ import {
 } from "@/app/components/ui/table";
 import { fmtNum } from "@/lib/format";
 import { cn } from "cn";
-import type { AutonomyRow, ID } from "@/lib/types";
+import type { AutonomyRow, CargoCategory, ID } from "@/lib/types";
 
 export default function InventoryPage() {
-  const { data, autonomy, nextResupplyDays, addInventoryTxn, stationById } =
-    useStore();
-  const stations = data.stations.filter((s) => s.type === "station");
+  const {
+    data,
+    autonomy,
+    nextResupplyDays,
+    addInventoryTxn,
+    stationById,
+    scope,
+    can,
+  } = useStore();
+  const allStations = data.stations.filter((s) => s.type === "station");
+  const scopedStations =
+    scope === "all"
+      ? allStations
+      : allStations.filter((s) => s.id === scope);
+  const stations = scopedStations.length ? scopedStations : allStations;
   const [stationId, setStationId] = useTabParam(
     "station",
     stations[0]?.id ?? "",
@@ -59,15 +78,20 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-4">
-      <Tabs value={stationId} onValueChange={setStationId}>
-        <TabsList>
-          {stations.map((s) => (
-            <TabsTrigger key={s.id} value={s.id}>
-              {s.shortName}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Tabs value={stationId} onValueChange={setStationId}>
+          <TabsList>
+            {stations.map((s) => (
+              <TabsTrigger key={s.id} value={s.id}>
+                {s.shortName}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        {can("inventory.add") ? (
+          <AddItemDialog stationId={stationId} stationName={station?.shortName} />
+        ) : null}
+      </div>
 
       <StatStrip>
         <Stat
@@ -233,6 +257,7 @@ function ItemDialog({
   addTxn: ReturnType<typeof useStore>["addInventoryTxn"];
   forecast: { history: number[]; future: { day: number; value: number }[] };
 }) {
+  const { can } = useStore();
   const [qty, setQty] = React.useState("10");
   const [reason, setReason] = React.useState<
     "consumed" | "received" | "wastage" | "count_adj"
@@ -339,6 +364,12 @@ function ItemDialog({
             </div>
             <Button
               size="sm"
+              disabled={!can("inventory.txn")}
+              title={
+                can("inventory.txn")
+                  ? undefined
+                  : "Your role cannot post stock transactions"
+              }
               onClick={() => {
                 addTxn({
                   stationId,
@@ -368,6 +399,176 @@ function ItemDialog({
             </span>
             . Deltas merge commutatively during offline sync.
           </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const CATEGORY_LABEL: Record<Exclude<CargoCategory, "waste">, string> = {
+  food: "Food",
+  fuel: "Fuel",
+  scientific: "Scientific",
+  medical: "Medical",
+  spares: "Spares",
+};
+
+function AddItemDialog({
+  stationId,
+  stationName,
+}: {
+  stationId: ID;
+  stationName?: string;
+}) {
+  const { addInventoryItem } = useStore();
+  const [open, setOpen] = React.useState(false);
+  const [name, setName] = React.useState("");
+  const [sku, setSku] = React.useState("");
+  const [unit, setUnit] = React.useState("unit");
+  const [category, setCategory] =
+    React.useState<Exclude<CargoCategory, "waste">>("food");
+  const [shelfLifeDays, setShelfLifeDays] = React.useState("365");
+  const [critical, setCritical] = React.useState(false);
+  const [openingQty, setOpeningQty] = React.useState("0");
+
+  const valid = name.trim() !== "" && sku.trim() !== "" && unit.trim() !== "";
+
+  const submit = () => {
+    if (!valid) return;
+    addInventoryItem({
+      sku: sku.trim().toUpperCase(),
+      name: name.trim(),
+      unit: unit.trim(),
+      category,
+      shelfLifeDays: Math.max(1, Number(shelfLifeDays) || 1),
+      critical,
+      stationId,
+      openingQty: Math.max(0, Number(openingQty) || 0),
+    });
+    setOpen(false);
+    setName("");
+    setSku("");
+    setUnit("unit");
+    setCategory("food");
+    setShelfLifeDays("365");
+    setCritical(false);
+    setOpeningQty("0");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button size="sm" className="gap-1.5" />}>
+        <Plus /> Add item
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add inventory item</DialogTitle>
+          <DialogDescription>
+            Registers a new SKU and opens stock at{" "}
+            {stationName ?? "the selected station"}.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                SKU
+              </Label>
+              <Input
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                placeholder="FOOD-HONEY"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Unit
+              </Label>
+              <Input
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                placeholder="kg"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-[10px] text-muted-foreground uppercase">
+              Name
+            </Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Honey"
+              className="mt-1 h-8 text-xs"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Category
+              </Label>
+              <select
+                value={category}
+                onChange={(e) =>
+                  setCategory(e.target.value as Exclude<CargoCategory, "waste">)
+                }
+                className="mt-1 h-8 w-full rounded-md border bg-transparent px-2 text-xs outline-none focus-visible:border-ring"
+              >
+                {(
+                  Object.keys(CATEGORY_LABEL) as Exclude<
+                    CargoCategory,
+                    "waste"
+                  >[]
+                ).map((c) => (
+                  <option key={c} value={c}>
+                    {CATEGORY_LABEL[c]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Shelf life (days)
+              </Label>
+              <Input
+                value={shelfLifeDays}
+                onChange={(e) => setShelfLifeDays(e.target.value)}
+                type="number"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Opening stock ({unit.trim() || "unit"})
+              </Label>
+              <Input
+                value={openingQty}
+                onChange={(e) => setOpeningQty(e.target.value)}
+                type="number"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Criticality
+              </Label>
+              <select
+                value={critical ? "yes" : "no"}
+                onChange={(e) => setCritical(e.target.value === "yes")}
+                className="mt-1 h-8 w-full rounded-md border bg-transparent px-2 text-xs outline-none focus-visible:border-ring"
+              >
+                <option value="no">Standard</option>
+                <option value="yes">Critical</option>
+              </select>
+            </div>
+          </div>
+          <Button className="w-full" disabled={!valid} onClick={submit}>
+            Add item
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

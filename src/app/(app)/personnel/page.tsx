@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { BadgeCheck, Check, HeartPulse, ShieldAlert, Users } from "lucide-react";
+import { BadgeCheck, Check, HeartPulse, Plus, ShieldAlert, Users } from "lucide-react";
 import { useStore } from "@/lib/store";
 import {
   SectionCard,
@@ -15,12 +15,14 @@ import { Button } from "@/app/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { useTabParam } from "@/lib/use-tab-param";
 import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/app/components/ui/dialog";
 import {
   Table,
@@ -46,8 +48,14 @@ const STATE_TONE: Record<Personnel["state"], string> = {
 };
 
 export default function PersonnelPage() {
-  const { data, stationById } = useStore();
-  const stations = data.stations.filter((s) => s.type === "station");
+  const { data, stationById, updatePersonnel, inScope, can, scope } =
+    useStore();
+  const allStations = data.stations.filter((s) => s.type === "station");
+  const scopedStations =
+    scope === "all"
+      ? allStations
+      : allStations.filter((s) => s.id === scope);
+  const stations = scopedStations.length ? scopedStations : allStations;
   const [filter, setFilter] = useTabParam(
     "filter",
     "all",
@@ -57,25 +65,27 @@ export default function PersonnelPage() {
       v === "summer" ||
       stations.some((s) => s.id === v),
   );
-  const [selected, setSelected] = React.useState<Personnel | null>(null);
+  const [selectedId, setSelectedId] = React.useState<ID | null>(null);
+  const selected = data.personnel.find((p) => p.id === selectedId) ?? null;
 
-  const list = data.personnel.filter((p) => {
+  const scoped = data.personnel.filter((p) => inScope(p.stationId));
+  const list = scoped.filter((p) => {
     if (filter === "all") return true;
     if (filter === "winter" || filter === "summer") return p.team === filter;
     return p.stationId === filter;
   });
 
-  const onStation = data.personnel.filter((p) => p.state === "AT_STATION");
+  const onStation = scoped.filter((p) => p.state === "AT_STATION");
 
   return (
     <div className="space-y-4">
       <StatStrip>
         <Stat
           label="Personnel"
-          value={data.personnel.length}
+          value={scoped.length}
           unit="on roster"
           icon={<Users className="size-4" />}
-          hint={`${data.personnel.filter((p) => p.team === "winter").length} winter-over`}
+          hint={`${scoped.filter((p) => p.team === "winter").length} winter-over`}
         />
         <Stat
           label="On station"
@@ -86,16 +96,14 @@ export default function PersonnelPage() {
         />
         <Stat
           label="In transit"
-          value={data.personnel.filter((p) => p.state === "IN_TRANSIT").length}
+          value={scoped.filter((p) => p.state === "IN_TRANSIT").length}
           hint="Via Cape Town gateway"
           icon={<Users className="size-4" />}
         />
         <Stat
           label="Medical flags"
-          value={data.personnel.filter((p) => !p.medicalClearance).length}
-          tone={
-            data.personnel.some((p) => !p.medicalClearance) ? "watch" : "ok"
-          }
+          value={scoped.filter((p) => !p.medicalClearance).length}
+          tone={scoped.some((p) => !p.medicalClearance) ? "watch" : "ok"}
           hint="Clearance pending"
           icon={<HeartPulse className="size-4" />}
         />
@@ -106,6 +114,7 @@ export default function PersonnelPage() {
           title="Roster"
           description="Nomination → medical → training → travel → station → de-induction"
           contentClassName="px-0"
+          action={can("personnel.add") ? <AddPersonDialog /> : undefined}
         >
           <div className="px-4 pb-3">
             <Tabs value={filter} onValueChange={setFilter}>
@@ -137,7 +146,7 @@ export default function PersonnelPage() {
                 <TableRow
                   key={p.id}
                   className="cursor-pointer"
-                  onClick={() => setSelected(p)}
+                  onClick={() => setSelectedId(p.id)}
                 >
                   <TableCell className="font-medium">
                     {p.name}
@@ -184,8 +193,8 @@ export default function PersonnelPage() {
       </div>
 
       <Dialog
-        open={Boolean(selected)}
-        onOpenChange={(o) => !o && setSelected(null)}
+        open={Boolean(selectedId)}
+        onOpenChange={(o) => !o && setSelectedId(null)}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -236,6 +245,60 @@ export default function PersonnelPage() {
                   ))}
                 </div>
               </div>
+
+              <div className="rounded-lg border p-3">
+                <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Reassign
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground uppercase">
+                      Station
+                    </Label>
+                    <select
+                      value={selected.stationId ?? ""}
+                      disabled={!can("personnel.muster")}
+                      onChange={(e) =>
+                        updatePersonnel(selected.id, {
+                          stationId: e.target.value || undefined,
+                        })
+                      }
+                      className={SELECT_CLS}
+                    >
+                      <option value="">Unassigned</option>
+                      {stations.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.shortName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground uppercase">
+                      Status
+                    </Label>
+                    <select
+                      value={selected.state}
+                      disabled={!can("personnel.muster")}
+                      onChange={(e) =>
+                        updatePersonnel(selected.id, {
+                          state: e.target.value as Personnel["state"],
+                        })
+                      }
+                      className={SELECT_CLS}
+                    >
+                      {ALL_STATES.map((s) => (
+                        <option key={s} value={s}>
+                          {title(s)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Changes apply immediately and queue on the sync lane.
+                </p>
+              </div>
             </div>
           ) : null}
         </DialogContent>
@@ -245,8 +308,11 @@ export default function PersonnelPage() {
 }
 
 function RollCall() {
-  const { data, advanceIncident, raiseIncident } = useStore();
-  const stations = data.stations.filter((s) => s.type === "station");
+  const { data, advanceIncident, raiseIncident, can, scope } = useStore();
+  const allStations = data.stations.filter((s) => s.type === "station");
+  const scopedStations =
+    scope === "all" ? allStations : allStations.filter((s) => s.id === scope);
+  const stations = scopedStations.length ? scopedStations : allStations;
   const [stationId, setStationId] = React.useState<ID>(stations[0]?.id ?? "");
   const [present, setPresent] = React.useState<Set<ID>>(new Set());
   const [search, setSearch] = React.useState("");
@@ -376,7 +442,12 @@ function RollCall() {
       <Button
         size="sm"
         className="mt-2 w-full"
-        disabled={!onStation.length}
+        disabled={!onStation.length || !can("personnel.muster")}
+        title={
+          can("personnel.muster")
+            ? undefined
+            : "Your role cannot close a muster roll-call"
+        }
         onClick={() => {
           if (unaccounted.length) {
             const inc = raiseIncident({
@@ -425,4 +496,220 @@ function initials(name: string) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+}
+
+const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
+
+const NEW_STATES: Personnel["state"][] = [
+  "NOMINATED",
+  "MEDICALLY_CLEARED",
+  "TRAINED",
+  "REPORTED_GOA",
+  "IN_TRANSIT",
+  "AT_STATION",
+];
+
+const ALL_STATES: Personnel["state"][] = [
+  ...NEW_STATES,
+  "DE_INDUCTED",
+  "EVACUATED",
+];
+
+const SELECT_CLS =
+  "mt-1 h-8 w-full rounded-md border bg-transparent px-2 text-xs outline-none focus-visible:border-ring";
+
+function AddPersonDialog() {
+  const { data, addPersonnel } = useStore();
+  const stations = data.stations.filter((s) => s.type === "station");
+  const [open, setOpen] = React.useState(false);
+  const [name, setName] = React.useState("");
+  const [role, setRole] = React.useState("");
+  const [team, setTeam] = React.useState<Personnel["team"]>("summer");
+  const [bloodGroup, setBloodGroup] = React.useState("O+");
+  const [emergencyContact, setEmergencyContact] = React.useState("");
+  const [medicalClearance, setMedicalClearance] = React.useState(false);
+  const [training, setTraining] = React.useState("Survival");
+  const [state, setState] = React.useState<Personnel["state"]>("NOMINATED");
+  const [stationId, setStationId] = React.useState("");
+
+  const valid = name.trim() !== "" && role.trim() !== "";
+
+  const submit = () => {
+    if (!valid) return;
+    addPersonnel({
+      name: name.trim(),
+      role: role.trim(),
+      team,
+      medicalClearance,
+      training: training
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+      bloodGroup,
+      emergencyContact: emergencyContact.trim() || "—",
+      stationId: stationId || undefined,
+      state,
+    });
+    setOpen(false);
+    setName("");
+    setRole("");
+    setTeam("summer");
+    setBloodGroup("O+");
+    setEmergencyContact("");
+    setMedicalClearance(false);
+    setTraining("Survival");
+    setState("NOMINATED");
+    setStationId("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button size="sm" className="gap-1.5" />}>
+        <Plus /> Add person
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add personnel</DialogTitle>
+          <DialogDescription>
+            Nominates a person onto the roster. Clearance and training follow
+            the standard induction flow.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Name
+              </Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Arjun Sharma"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Role
+              </Label>
+              <Input
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                placeholder="Glaciologist"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Team
+              </Label>
+              <select
+                value={team}
+                onChange={(e) =>
+                  setTeam(e.target.value as Personnel["team"])
+                }
+                className={SELECT_CLS}
+              >
+                <option value="summer">Summer</option>
+                <option value="winter">Winter-over</option>
+              </select>
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Blood group
+              </Label>
+              <select
+                value={bloodGroup}
+                onChange={(e) => setBloodGroup(e.target.value)}
+                className={SELECT_CLS}
+              >
+                {BLOOD_GROUPS.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-[10px] text-muted-foreground uppercase">
+              Emergency contact
+            </Label>
+            <Input
+              value={emergencyContact}
+              onChange={(e) => setEmergencyContact(e.target.value)}
+              placeholder="+91 98XXXXXXXX"
+              className="mt-1 h-8 text-xs"
+            />
+          </div>
+          <div>
+            <Label className="text-[10px] text-muted-foreground uppercase">
+              Training (comma separated)
+            </Label>
+            <Input
+              value={training}
+              onChange={(e) => setTraining(e.target.value)}
+              placeholder="Survival, First aid"
+              className="mt-1 h-8 text-xs"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Status
+              </Label>
+              <select
+                value={state}
+                onChange={(e) =>
+                  setState(e.target.value as Personnel["state"])
+                }
+                className={SELECT_CLS}
+              >
+                {NEW_STATES.map((s) => (
+                  <option key={s} value={s}>
+                    {title(s)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">
+                Medical clearance
+              </Label>
+              <select
+                value={medicalClearance ? "yes" : "no"}
+                onChange={(e) => setMedicalClearance(e.target.value === "yes")}
+                className={SELECT_CLS}
+              >
+                <option value="no">Pending</option>
+                <option value="yes">Cleared</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-[10px] text-muted-foreground uppercase">
+              Station (optional)
+            </Label>
+            <select
+              value={stationId}
+              onChange={(e) => setStationId(e.target.value)}
+              className={SELECT_CLS}
+            >
+              <option value="">Unassigned</option>
+              {stations.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.shortName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Button className="w-full" disabled={!valid} onClick={submit}>
+            Add person
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

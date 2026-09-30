@@ -4,7 +4,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { buildSeed, consumptionSeries, type Dataset, TODAY } from "@/lib/data/seed";
 import { digest, GENESIS_HASH } from "@/lib/hash";
-import { ROLES } from "@/lib/roles";
+import { ROLES, type ActionKey } from "@/lib/roles";
 import {
   computeAutonomy,
   detectAnomalies,
@@ -12,14 +12,19 @@ import {
   forecastSeries,
 } from "@/lib/engine";
 import type {
+  Alert,
   AutonomyRow,
+  CargoCategory,
+  Consignment,
   ConsignmentStatus,
   CustodyEvent,
   Expedition,
   ID,
   Incident,
+  InventoryItem,
   InventoryTxn,
   Leg,
+  Personnel,
   Role,
   SimulationResult,
   Station,
@@ -39,12 +44,56 @@ export interface CreateExpeditionInput {
 
 export type LinkMode = "online" | "throttled" | "offline";
 
+const ROLE_STORAGE_KEY = "polarlink:role";
+
+function readStoredRole(): Role | null {
+  if (typeof window === "undefined") return null;
+  const stored = window.sessionStorage.getItem(ROLE_STORAGE_KEY);
+  return stored && stored in ROLES ? (stored as Role) : null;
+}
+
+interface Session {
+  role: Role;
+}
+
+let sessionStore: Session | null = (() => {
+  const r = readStoredRole();
+  return r ? { role: r } : null;
+})();
+const sessionListeners = new Set<() => void>();
+
+function subscribeSession(listener: () => void) {
+  sessionListeners.add(listener);
+  return () => {
+    sessionListeners.delete(listener);
+  };
+}
+
+function setStoredSession(role: Role | null) {
+  sessionStore = role ? { role } : null;
+  if (typeof window !== "undefined") {
+    if (role) window.sessionStorage.setItem(ROLE_STORAGE_KEY, role);
+    else window.sessionStorage.removeItem(ROLE_STORAGE_KEY);
+  }
+  sessionListeners.forEach((listener) => listener());
+}
+
 export interface StoreValue {
   data: Dataset;
   stationById: Map<ID, Station>;
   today: Date;
   role: Role;
   setRole: (r: Role) => void;
+  /** True once a role has been picked on the sign-in screen. */
+  authed: boolean;
+  login: (r: Role) => void;
+  logout: () => void;
+  /** Whether the current role may perform an action. */
+  can: (action: ActionKey) => boolean;
+  /** Whether the current role may open a route. */
+  canPage: (href: string) => boolean;
+  /** Whether a station falls inside the current role scope. */
+  inScope: (stationId?: ID) => boolean;
   scope: ID | "all";
   setScope: (s: ID | "all") => void;
   link: LinkMode;
@@ -63,6 +112,43 @@ export interface StoreValue {
     actor?: string
   ) => void;
   addInventoryTxn: (txn: Omit<InventoryTxn, "id" | "ts" | "originNode">) => void;
+  addInventoryItem: (input: {
+    sku: string;
+    name: string;
+    unit: string;
+    category: InventoryItem["category"];
+    shelfLifeDays: number;
+    critical: boolean;
+    stationId: ID;
+    openingQty: number;
+  }) => InventoryItem;
+  addPersonnel: (input: {
+    name: string;
+    role: string;
+    team: Personnel["team"];
+    medicalClearance: boolean;
+    training: string[];
+    bloodGroup: string;
+    emergencyContact: string;
+    stationId?: ID;
+    state?: Personnel["state"];
+  }) => Personnel;
+  updatePersonnel: (
+    id: ID,
+    patch: { stationId?: ID; state?: Personnel["state"] }
+  ) => void;
+  createConsignment: (input: {
+    description: string;
+    category: CargoCategory;
+    originStationId: ID;
+    destinationStationId: ID;
+    expeditionId: ID;
+    weightKg: number;
+    volumeM3?: number;
+    priority?: SyncPriority;
+    hazmatClass?: string;
+    tempReq?: string;
+  }) => Consignment;
   raiseIncident: (input: {
     type: Incident["type"];
     severity: Incident["severity"];
@@ -89,8 +175,17 @@ const StoreContext = React.createContext<StoreValue | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = React.useState<Dataset>(() => buildSeed());
-  const [role, setRoleState] = React.useState<Role>("hq_logistics");
-  const [scope, setScope] = React.useState<ID | "all">("all");
+  const session = React.useSyncExternalStore(
+    subscribeSession,
+    () => sessionStore,
+    () => null
+  );
+  const authed = session !== null;
+  const role = session?.role ?? "hq_logistics";
+  const [scopeOverride, setScopeOverride] = React.useState<ID | "all" | null>(
+    null
+  );
+  const scope = scopeOverride ?? ROLES[role].scope;
   const [link, setLinkState] = React.useState<LinkMode>("online");
   const [glare, setGlare] = React.useState(false);
   const [simulation, setSimulation] = React.useState<SimulationResult | null>(null);
@@ -103,9 +198,49 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const setRole = React.useCallback((r: Role) => {
-    setRoleState(r);
-    setScope(ROLES[r].scope);
+    setStoredSession(r);
+    setScopeOverride(null);
   }, []);
+
+  const setScope = React.useCallback((s: ID | "all") => {
+    setScopeOverride(s);
+  }, []);
+
+  const login = React.useCallback(
+    (r: Role) => {
+      setRole(r);
+    },
+    [setRole]
+  );
+
+  const logout = React.useCallback(() => {
+    setStoredSession(null);
+    setScopeOverride(null);
+  }, []);
+
+  const can = React.useCallback(
+    (action: ActionKey) => {
+      const def = ROLES[role];
+      return def.actions === "all" || def.actions.includes(action);
+    },
+    [role]
+  );
+
+  const canPage = React.useCallback(
+    (href: string) => {
+      const def = ROLES[role];
+      return def.pages === "all" || def.pages.includes(href);
+    },
+    [role]
+  );
+
+  const inScope = React.useCallback(
+    (stationId?: ID) => {
+      if (scope === "all") return true;
+      return stationId === scope;
+    },
+    [scope]
+  );
 
   const nextResupplyDays = React.useCallback(
     (stationId: ID) => {
@@ -272,6 +407,225 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [link]
   );
 
+  const addInventoryItem = React.useCallback<StoreValue["addInventoryItem"]>(
+    (input) => {
+      const id = `it-${Date.now()}`;
+      const item: InventoryItem = {
+        id,
+        sku: input.sku,
+        name: input.name,
+        unit: input.unit,
+        category: input.category,
+        shelfLifeDays: input.shelfLifeDays,
+        critical: input.critical,
+      };
+      setData((prev) => {
+        const batches =
+          input.openingQty > 0
+            ? [
+                ...prev.batches,
+                {
+                  id: `bt-${id}`,
+                  stationId: input.stationId,
+                  itemId: id,
+                  batch: `B-${Date.now() % 10000}`,
+                  qty: Math.max(0, input.openingQty),
+                  minThreshold: 0,
+                  expiryDate: new Date(
+                    Date.now() + Math.max(input.shelfLifeDays, 1) * 86400000
+                  ).toISOString(),
+                },
+              ]
+            : prev.batches;
+        const syncEvent: SyncEvent = {
+          id: `sy-item-${Date.now()}`,
+          eventUuid: digest(`${id}-${input.sku}`).slice(0, 12),
+          originNode: `${prev.stations.find((s) => s.id === input.stationId)?.shortName ?? "edge"}-edge`,
+          entity: "inventory_item",
+          op: "create",
+          payload: `${input.sku}:${input.category}`,
+          lamportTs: prev.syncLog.length + 7000,
+          priority: "P1",
+          bytes: 140,
+          appliedAt: link === "offline" ? undefined : new Date().toISOString(),
+        };
+        return {
+          ...prev,
+          items: [...prev.items, item],
+          batches,
+          syncLog: [syncEvent, ...prev.syncLog].slice(0, 60),
+        };
+      });
+      toast.success("Inventory item added", {
+        description: `${input.sku} \u00b7 ${input.name}`,
+      });
+      return item;
+    },
+    [link]
+  );
+
+  const addPersonnel = React.useCallback<StoreValue["addPersonnel"]>(
+    (input) => {
+      const id = `pe-${Date.now()}`;
+      const person: Personnel = {
+        id,
+        name: input.name,
+        role: input.role,
+        team: input.team,
+        medicalClearance: input.medicalClearance,
+        training: input.training,
+        bloodGroup: input.bloodGroup,
+        emergencyContact: input.emergencyContact,
+        stationId: input.stationId,
+        state: input.state ?? "NOMINATED",
+      };
+      setData((prev) => {
+        const syncEvent: SyncEvent = {
+          id: `sy-pe-${Date.now()}`,
+          eventUuid: digest(`${id}-${input.name}`).slice(0, 12),
+          originNode: "hq-node",
+          entity: "personnel",
+          op: "create",
+          payload: `${input.name}:${input.team}`,
+          lamportTs: prev.syncLog.length + 8000,
+          priority: "P1",
+          bytes: 180,
+          appliedAt: link === "offline" ? undefined : new Date().toISOString(),
+        };
+        return {
+          ...prev,
+          personnel: [person, ...prev.personnel],
+          syncLog: [syncEvent, ...prev.syncLog].slice(0, 60),
+        };
+      });
+      toast.success("Personnel added", {
+        description: `${input.name} \u00b7 ${input.role}`,
+      });
+      return person;
+    },
+    [link]
+  );
+
+  const updatePersonnel = React.useCallback<StoreValue["updatePersonnel"]>(
+    (id, patch) => {
+      let label = "Roster updated";
+      setData((prev) => {
+        const person = prev.personnel.find((p) => p.id === id);
+        if (!person) return prev;
+        const nextStation =
+          "stationId" in patch ? patch.stationId : person.stationId;
+        const nextState = patch.state ?? person.state;
+        label = `${person.name} \u00b7 ${nextState.replaceAll("_", " ")}`;
+        const updated: Personnel = {
+          ...person,
+          stationId: nextStation || undefined,
+          state: nextState,
+        };
+        const stationNode = prev.stations.find((s) => s.id === nextStation);
+        const syncEvent: SyncEvent = {
+          id: `sy-pe-up-${Date.now()}`,
+          eventUuid: digest(`${id}-${nextState}`).slice(0, 12),
+          originNode: `${stationNode?.shortName ?? "hq"}-edge`,
+          entity: "personnel",
+          op: "update",
+          payload: `${person.name}:${nextState}`,
+          lamportTs: prev.syncLog.length + 8400,
+          priority: "P1",
+          bytes: 120,
+          appliedAt: link === "offline" ? undefined : new Date().toISOString(),
+        };
+        return {
+          ...prev,
+          personnel: prev.personnel.map((p) => (p.id === id ? updated : p)),
+          syncLog: [syncEvent, ...prev.syncLog].slice(0, 60),
+        };
+      });
+      toast.message("Personnel reassigned", { description: label });
+    },
+    [link]
+  );
+
+  const createConsignment = React.useCallback<StoreValue["createConsignment"]>(
+    (input) => {
+      const id = `cs-${Date.now()}`;
+      const qrCode = `POLAR-${String(Date.now()).slice(-6)}`;
+      const consignment: Consignment = {
+        id,
+        qrCode,
+        expeditionId: input.expeditionId,
+        description: input.description,
+        originStationId: input.originStationId,
+        destinationStationId: input.destinationStationId,
+        category: input.category,
+        weightKg: input.weightKg,
+        volumeM3:
+          input.volumeM3 ?? Math.round((input.weightKg / 250) * 10) / 10,
+        priority:
+          input.priority ??
+          (input.category === "medical"
+            ? "P0"
+            : input.category === "waste"
+              ? "P2"
+              : "P1"),
+        hazmatClass: input.hazmatClass,
+        tempReq: input.tempReq,
+        status: "PLANNED",
+      };
+      setData((prev) => {
+        const station = prev.stations.find(
+          (s) => s.id === input.originStationId
+        );
+        const ts = new Date().toISOString();
+        const actor = "HQ Logistics Officer";
+        const event: CustodyEvent = {
+          id: `ce-${id}-0`,
+          consignmentId: id,
+          legId: undefined,
+          stationId: input.originStationId,
+          eventType: "scan:planned",
+          fromState: "NEW",
+          toState: "PLANNED",
+          scannedBy: actor,
+          ts,
+          lat: station?.lat ?? 0,
+          lon: station?.lon ?? 0,
+          prevHash: GENESIS_HASH,
+          hash: digest(
+            GENESIS_HASH,
+            id,
+            "PLANNED",
+            ts,
+            input.originStationId,
+            actor
+          ),
+        };
+        const syncEvent: SyncEvent = {
+          id: `sy-cs-${Date.now()}`,
+          eventUuid: digest(`${id}-${qrCode}`).slice(0, 12),
+          originNode: "hq-node",
+          entity: "consignment",
+          op: "create",
+          payload: `${qrCode}:${input.category}`,
+          lamportTs: prev.syncLog.length + 8500,
+          priority: consignment.priority,
+          bytes: 210,
+          appliedAt: link === "offline" ? undefined : new Date().toISOString(),
+        };
+        return {
+          ...prev,
+          consignments: [consignment, ...prev.consignments],
+          custody: [...prev.custody, event],
+          syncLog: [syncEvent, ...prev.syncLog].slice(0, 60),
+        };
+      });
+      toast.success("Consignment created", {
+        description: `${qrCode} \u00b7 ${input.description}`,
+      });
+      return consignment;
+    },
+    [link]
+  );
+
   const raiseIncident = React.useCallback<StoreValue["raiseIncident"]>((input) => {
     const incident: Incident = {
       id: `in-${Date.now()}`,
@@ -396,11 +750,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));
       const last = chain[chain.length - 1];
       if (!last) return prev;
+      const cs = prev.consignments.find((c) => c.id === consignmentId);
+      const alert: Alert = {
+        id: `al-tamper-${Date.now()}`,
+        kind: "scan",
+        severity: "critical",
+        title: `Custody chain tampered \u00b7 ${cs?.qrCode ?? consignmentId}`,
+        detail: `A signed custody record for ${cs?.description ?? "a consignment"} was edited out-of-band; hash verification will fail.`,
+        stationId: cs?.destinationStationId,
+        ts: new Date().toISOString(),
+      };
       return {
         ...prev,
         custody: prev.custody.map((c) =>
           c.id === last.id ? { ...c, hash: digest("tampered", c.id) } : c
         ),
+        alerts: [alert, ...prev.alerts].slice(0, 30),
       };
     });
     toast.error("Custody record edited out-of-band", {
@@ -538,6 +903,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     today,
     role,
     setRole,
+    authed,
+    login,
+    logout,
+    can,
+    canPage,
+    inScope,
     scope,
     setScope,
     link,
@@ -550,6 +921,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     anomalies,
     scanConsignment,
     addInventoryTxn,
+    addInventoryItem,
+    addPersonnel,
+    updatePersonnel,
+    createConsignment,
     raiseIncident,
     advanceIncident,
     logMaintenance,

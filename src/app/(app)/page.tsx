@@ -87,63 +87,76 @@ const DEMAND_MIX = [
 const DEMAND_MAX = Math.max(...DEMAND_MIX.map((d) => d.value));
 
 export default function DashboardPage() {
-  const { data, autonomy, link, stationById } = useStore();
+  const { data, autonomy, link, stationById, inScope } = useStore();
 
   const stations = data.stations;
-  const activeStations = stations.filter((s) => s.type === "station");
+  const activeStations = stations.filter(
+    (s) => s.type === "station" && inScope(s.id),
+  );
+
+  const scopedConsignments = data.consignments.filter(
+    (c) => inScope(c.originStationId) || inScope(c.destinationStationId),
+  );
+  const scopedLegs = data.legs.filter(
+    (l) => inScope(l.fromStationId) || inScope(l.toStationId),
+  );
+  const scopedIncidents = data.incidents.filter((i) => inScope(i.stationId));
+  const scopedCustody = data.custody.filter((c) => inScope(c.stationId));
 
   const criticalRows = React.useMemo(
     () =>
       Object.entries(autonomy)
         .flatMap(([stationId, rows]) => rows.map((r) => ({ stationId, ...r })))
-        .filter((r) => r.risk !== "OK")
+        .filter((r) => r.risk !== "OK" && inScope(r.stationId))
         .sort((a, b) => a.daysLeft - b.daysLeft),
-    [autonomy],
+    [autonomy, inScope],
   );
 
-  const openIncidents = data.incidents.filter(
+  const openIncidents = scopedIncidents.filter(
     (i) => i.status !== "RESOLVED" && i.status !== "REVIEWED",
   );
-  const activeConsignments = data.consignments.filter(
+  const activeConsignments = scopedConsignments.filter(
     (c) => c.status !== "CONSUMED" && c.status !== "WASTE_RETURNED",
   );
-  const inTransitLegs = data.legs.filter(
+  const inTransitLegs = scopedLegs.filter(
     (l) => l.status === "in_transit" || l.status === "loading",
   );
-  const crewOnStation = data.personnel.filter((p) => p.state === "AT_STATION");
+  const crewOnStation = data.personnel.filter(
+    (p) => p.state === "AT_STATION" && inScope(p.stationId),
+  );
 
   const statusBuckets = [
     {
       label: "Planned / packed",
-      value: data.consignments.filter((c) =>
+      value: scopedConsignments.filter((c) =>
         ["PLANNED", "PACKED_GOA"].includes(c.status),
       ).length,
     },
     {
       label: "In transit / hub",
-      value: data.consignments.filter((c) =>
+      value: scopedConsignments.filter((c) =>
         ["IN_TRANSIT_TO_PORT", "AT_PORT", "AT_HUB"].includes(c.status),
       ).length,
     },
     {
       label: "Loaded / offloaded",
-      value: data.consignments.filter((c) =>
+      value: scopedConsignments.filter((c) =>
         ["LOADED", "OFFLOADED"].includes(c.status),
       ).length,
     },
     {
       label: "Retrograde / waste",
-      value: data.consignments.filter((c) =>
+      value: scopedConsignments.filter((c) =>
         ["RETROGRADE", "WASTE_RETURNED"].includes(c.status),
       ).length,
     },
   ];
 
-  const recentCustody = [...data.custody]
+  const recentCustody = [...scopedCustody]
     .sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts))
     .slice(0, 8);
   const feedColumns = [recentCustody.slice(0, 4), recentCustody.slice(4, 8)];
-  const totalConsignments = data.consignments.length;
+  const totalConsignments = scopedConsignments.length;
   const minAutonomy = criticalRows[0];
   const pendingSync = data.syncLog.filter((s) => !s.appliedAt).length;
 
@@ -249,7 +262,7 @@ export default function DashboardPage() {
         >
           <NetworkMap
             stations={stations}
-            legs={data.legs}
+            legs={scopedLegs}
             className="rounded-t-none"
           />
         </SectionCard>
